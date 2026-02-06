@@ -5,17 +5,17 @@ SELECT
     p.name_product,
     p.description,
     p.price,
-    c.description AS category,
+    c.description AS desc_category,
     p.stock,
     p.sku,
-    ps.description AS status,
+    ps.description AS desc_status,
     p.created_at,
     p.updated_at,
     (
         SELECT image_url 
         FROM product_images pi 
         WHERE pi.id_product = p.id_product 
-        AND pi.id_status = (SELECT id_status FROM image_status WHERE description = 'active')
+        AND pi.id_status = 1
         ORDER BY pi.order_position 
         LIMIT 1
     ) AS main_image
