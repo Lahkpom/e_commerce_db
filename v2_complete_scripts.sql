@@ -10,83 +10,89 @@
 
 -- Tabla de statuses general (paramétrica cerrada) 'A', 'active' | 'I', 'inactive' | 'D', 'deleted'
 CREATE TABLE status (
-    cod_status VARCHAR(2) PRIMARY KEY,
-    description VARCHAR(100) NOT NULL UNIQUE,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NULL
+    cod_status  VARCHAR(2)  PRIMARY KEY,
+    description VARCHAR(50) NOT NULL UNIQUE,
+    created_at  TIMESTAMP   NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP   NULL
 );
 
 -- Tabla de categorías de productos
 CREATE TABLE categories (
-    id_category SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE, 
+    id_category SERIAL      PRIMARY KEY,
+    name        VARCHAR(50) NOT NULL UNIQUE, 
     description VARCHAR(50) NOT NULL UNIQUE,
-    cod_status VARCHAR(2) NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NULL
+    cod_status  VARCHAR(2)  NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
+    created_at  TIMESTAMP   NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP   NULL
 );
 
 -- Tabla de estados de ventas
 CREATE TABLE sale_status (
-    id_status SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
+    id_status   SERIAL      PRIMARY KEY,
+    name        VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(50) NOT NULL UNIQUE,
-    cod_status VARCHAR(2) NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NULL
+    cod_status  VARCHAR(2)  NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
+    created_at  TIMESTAMP   NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP   NULL
 );
 
 -- Tabla de estados de pago
 CREATE TABLE payment_status (
-    id_status SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
+    id_status   SERIAL      PRIMARY KEY,
+    name        VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(50) NOT NULL UNIQUE,
-    cod_status VARCHAR(2) NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NULL
+    cod_status  VARCHAR(2)  NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
+    created_at  TIMESTAMP   NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP   NULL
 );
 
 -- Tabla de métodos de pago
 CREATE TABLE payment_methods (
-    id_method SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
+    id_method   SERIAL      PRIMARY KEY,
+    name        VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(50) NOT NULL UNIQUE,
-    cod_status VARCHAR(2) NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NULL
+    cod_status  VARCHAR(2)  NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
+    created_at  TIMESTAMP   NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP   NULL
 );
 
 -- ----------------------------------------------------------------------------
 -- 2. INSERTAR DATOS INICIALES EN TABLAS PARAMÉTRICAS
 -- ----------------------------------------------------------------------------
 
+-- Statuses generales
+INSERT INTO status (cod_status, description) VALUES 
+    ('A', 'active'),
+    ('I', 'inactive'),
+    ('D', 'deleted');
+
 -- Categorías
 INSERT INTO categories (name, description) VALUES 
     ('girls', 'niñas'),
-    ('boys', 'niños'),
-    ('men', 'hombres'),
+    ('boys' , 'niños'),
+    ('men'  , 'hombres'),
     ('women', 'mujeres');
 
 -- Estados de ventas
 INSERT INTO sale_status (name, description) VALUES 
-    ('pending', 'pendiente'),
+    ('pending'  , 'pendiente'),
     ('preparing', 'preparando'),
-    ('shipped', 'enviado'),
+    ('shipped'  , 'enviado'),
     ('delivered', 'entregado'),
     ('cancelled', 'cancelado');
 
 -- Estados de pago
 INSERT INTO payment_status (name, description) VALUES 
-    ('pending', 'pendiente'),
-    ('approved', 'aprobado'),
-    ('rejected', 'rechazado'),
-    ('refunded', 'reembolsado');
+    ('pending'  , 'pendiente'),
+    ('approved' , 'aprobado'),
+    ('rejected' , 'rechazado'),
+    ('refunded' , 'reembolsado');
 
 -- Métodos de pago
 INSERT INTO payment_methods (name, description) VALUES 
-    ('mercadopago', 'mercado pago'),
-    ('transfer', 'transferencia'),
-    ('efective', 'efectivo');
+    ('mercadopago'  , 'mercado pago'),
+    ('transfer'     , 'transferencia'),
+    ('efective'     , 'efectivo');
 
 -- ----------------------------------------------------------------------------
 -- 3. TABLAS PRINCIPALES
@@ -94,16 +100,17 @@ INSERT INTO payment_methods (name, description) VALUES
 
 -- Tabla de productos
 CREATE TABLE products (
-    id_product UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name_product VARCHAR(255) NOT NULL UNIQUE,
-    description TEXT NOT NULL,
-    price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
-    id_category INTEGER NOT NULL REFERENCES categories(id_category),
-    stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
-    sku VARCHAR(100) NOT NULL UNIQUE,
-    id_status INTEGER NOT NULL REFERENCES product_status(id_status),
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NULL,
+    id_product      UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    name            VARCHAR(255)    NOT NULL UNIQUE,
+    short_desc      VARCHAR(255)    NOT NULL,
+    long_desc       TEXT            NOT NULL,
+    price           DECIMAL(10, 2)  NOT NULL CHECK (price >= 0),
+    id_category     INTEGER         NOT NULL REFERENCES categories(id_category),
+    sku             VARCHAR(100)    NOT NULL UNIQUE,
+    cod_status      VARCHAR(2)      NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
+    created_at      TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP       NULL
+    
     CONSTRAINT chk_price_positive CHECK (price >= 0)
 );
 
