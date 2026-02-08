@@ -216,53 +216,38 @@ CREATE TABLE variant_images (
 
 -- Tabla de ventas
 CREATE TABLE sales (
-    id_sale UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    total DECIMAL(10, 2) NOT NULL CHECK (total >= 0),
-    date_completed TIMESTAMP NULL,
-    customer_name VARCHAR(255) NOT NULL,
-    customer_email VARCHAR(255) NULL,
-    customer_phone VARCHAR(50) NOT NULL,
-    shipping_address TEXT NOT NULL,
-    order_notes TEXT NOT NULL DEFAULT '',
-    id_sale_status INTEGER NOT NULL REFERENCES sale_status(id_status),
-    id_payment_method INTEGER NOT NULL REFERENCES payment_methods(id_method),
-    id_payment_status INTEGER NOT NULL REFERENCES payment_status(id_status),
-    mp_payment_id VARCHAR(100) NULL,
-    mp_preference_id VARCHAR(100) NULL,
-    shipping_cost DECIMAL(10, 2) NOT NULL DEFAULT 0 CHECK (shipping_cost >= 0),
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NULL
+    id_sale             UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    total               DECIMAL(10, 2)  NOT NULL CHECK (total >= 0),
+    date_completed      TIMESTAMP       NULL,
+    customer_name       VARCHAR(255)    NOT NULL,
+    customer_email      VARCHAR(255)    NULL,
+    customer_phone      VARCHAR(50)     NOT NULL,
+    shipping_address    TEXT            NOT NULL,
+    order_notes         TEXT            NOT NULL DEFAULT '',
+    id_sale_status      INTEGER         NOT NULL REFERENCES sale_status(id_status),
+    id_payment_method   INTEGER         NOT NULL REFERENCES payment_methods(id_method),
+    id_payment_status   INTEGER         NOT NULL REFERENCES payment_status(id_status),
+    mp_payment_id       VARCHAR(100)    NULL,
+    mp_preference_id    VARCHAR(100)    NULL,
+    shipping_cost       DECIMAL(10, 2)  NOT NULL DEFAULT 0 CHECK (shipping_cost >= 0),
+    created_at          TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMP       NULL
 );
 
-
--- HAY QUE REVISAR ESTE, ME QUEDÉ HASTA ACÁ EN EL PASO 6 DEL MENSAJE DE 19:45 DEL 06/02/2026
+-- Tabla de items por venta
 CREATE TABLE sale_items (
-    id_sale_item UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_sale UUID NOT NULL REFERENCES sales(id_sale) ON DELETE CASCADE,
-    id_variant UUID NOT NULL REFERENCES product_variants(id_variant),
+    id_sale_item    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_sale         UUID NOT NULL REFERENCES sales(id_sale) ON DELETE CASCADE,
+    id_variant      UUID NOT NULL REFERENCES product_variants(id_variant),
     
     -- Snapshot al momento de la venta
-    product_name VARCHAR(255) NOT NULL,
-    variant_description VARCHAR(255) NOT NULL,
-    sku VARCHAR(100) NOT NULL,
-    unit_price DECIMAL(10, 2) NOT NULL CHECK (unit_price >= 0),
-    quantity INTEGER NOT NULL CHECK (quantity > 0),
-    subtotal DECIMAL(10, 2) NOT NULL CHECK (subtotal >= 0),
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
-
-
-
--- Tabla de items de venta
-CREATE TABLE sale_items (
-    id_sale_item UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_sale UUID NOT NULL REFERENCES sales(id_sale) ON DELETE CASCADE,
-    id_variant UUID NOT NULL REFERENCES product_variants(id_variant),
-    product_name VARCHAR(255) NOT NULL,
-    unit_price DECIMAL(10, 2) NOT NULL CHECK (unit_price >= 0),
-    quantity INTEGER NOT NULL CHECK (quantity > 0),
-    subtotal DECIMAL(10, 2) NOT NULL CHECK (subtotal >= 0),
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    product_name    VARCHAR(255)    NOT NULL,
+    variant_desc    VARCHAR(255)    NOT NULL,
+    sku             VARCHAR(100)    NOT NULL,
+    unit_price      DECIMAL(10, 2)  NOT NULL CHECK (unit_price >= 0),
+    quantity        INTEGER         NOT NULL CHECK (quantity > 0),
+    subtotal        DECIMAL(10, 2)  NOT NULL CHECK (subtotal >= 0),
+    created_at      TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
 -- ----------------------------------------------------------------------------
@@ -270,32 +255,32 @@ CREATE TABLE sale_items (
 -- ----------------------------------------------------------------------------
 
 -- Índices en products
-CREATE INDEX idx_products_category ON products(id_category);
-CREATE INDEX idx_products_status ON products(id_status);
-CREATE INDEX idx_products_sku ON products(sku);
+CREATE INDEX idx_products_category      ON products(id_category);
+CREATE INDEX idx_products_status        ON products(cod_status);
+CREATE INDEX idx_products_sku           ON products(sku);
 
 -- Índices en product_variants
-CREATE INDEX idx_variants_product ON product_variants(id_product);
-CREATE INDEX idx_variants_color ON product_variants(id_color);
-CREATE INDEX idx_variants_size ON product_variants(id_size);
-CREATE INDEX idx_variants_status ON product_variants(id_status);
-CREATE INDEX idx_variants_sku ON product_variants(sku);
+CREATE INDEX idx_variants_product       ON product_variants(id_product);
+CREATE INDEX idx_variants_color         ON product_variants(id_color);
+CREATE INDEX idx_variants_size          ON product_variants(id_size);
+CREATE INDEX idx_variants_status        ON product_variants(cod_status);
+CREATE INDEX idx_variants_sku           ON product_variants(sku);
 
 -- Índices en variant_images
 CREATE INDEX idx_variant_images_variant ON variant_images(id_variant);
-CREATE INDEX idx_variant_images_status ON variant_images(id_status);
+CREATE INDEX idx_variant_images_status  ON variant_images(cod_status);
 
 -- Índices en sales
-CREATE INDEX idx_sales_status ON sales(id_sale_status);
-CREATE INDEX idx_sales_payment_status ON sales(id_payment_status);
-CREATE INDEX idx_sales_payment_method ON sales(id_payment_method);
-CREATE INDEX idx_sales_created_at ON sales(created_at DESC);
-CREATE INDEX idx_sales_customer_email ON sales(customer_email);
-CREATE INDEX idx_sales_mp_payment_id ON sales(mp_payment_id);
+CREATE INDEX idx_sales_status           ON sales(id_sale_status);
+CREATE INDEX idx_sales_payment_status   ON sales(id_payment_status);
+CREATE INDEX idx_sales_payment_method   ON sales(id_payment_method);
+CREATE INDEX idx_sales_created_at       ON sales(created_at DESC);
+CREATE INDEX idx_sales_customer_email   ON sales(customer_email);
+CREATE INDEX idx_sales_mp_payment_id    ON sales(mp_payment_id);
 
 -- Índices en sale_items
-CREATE INDEX idx_sale_items_sale ON sale_items(id_sale);
-CREATE INDEX idx_sale_items_product ON sale_items(id_product);
+CREATE INDEX idx_sale_items_sale        ON sale_items(id_sale);
+CREATE INDEX idx_sale_items_variant     ON sale_items(id_variant);
 
 -- ----------------------------------------------------------------------------
 -- 5. FUNCIONES Y TRIGGERS PARA AUTOMATIZACIÓN
@@ -346,18 +331,19 @@ CREATE TRIGGER trg_validate_subtotal
     EXECUTE FUNCTION validate_sale_item_subtotal();
 
 -- Función para validar stock antes de crear un sale_item
-CREATE OR REPLACE FUNCTION check_product_stock()
+CREATE OR REPLACE FUNCTION check_variant_stock()
 RETURNS TRIGGER AS $$
 DECLARE
     available_stock INTEGER;
+    variant_info VARCHAR;
 BEGIN
-    SELECT stock INTO available_stock
-    FROM products
-    WHERE id_product = NEW.id_product;
+    SELECT stock, pv.sku INTO available_stock, variant_info
+    FROM product_variants pv
+    WHERE pv.id_variant = NEW.id_variant;
     
     IF available_stock < NEW.quantity THEN
-        RAISE EXCEPTION 'Stock insuficiente para el producto. Disponible: %, Solicitado: %', 
-            available_stock, NEW.quantity;
+        RAISE EXCEPTION 'Stock insuficiente para variante %. Disponible: %, Solicitado: %', 
+            variant_info, available_stock, NEW.quantity;
     END IF;
     
     RETURN NEW;
@@ -365,24 +351,23 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger para verificar stock
-CREATE TRIGGER trg_check_stock
+CREATE TRIGGER trg_check_variant_stock
     BEFORE INSERT ON sale_items
     FOR EACH ROW
-    EXECUTE FUNCTION check_product_stock();
+    EXECUTE FUNCTION check_variant_stock();
 
 -- Función para reducir stock automáticamente al confirmar venta
-CREATE OR REPLACE FUNCTION reduce_product_stock()
+CREATE OR REPLACE FUNCTION reduce_variant_stock()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Solo reducir stock cuando el estado cambia a 'approved'
     IF NEW.id_payment_status = (SELECT id_status FROM payment_status WHERE description = 'approved')
        AND OLD.id_payment_status != NEW.id_payment_status THEN
         
-        UPDATE products p
+        UPDATE product_variants pv
         SET stock = stock - si.quantity
         FROM sale_items si
         WHERE si.id_sale = NEW.id_sale
-          AND si.id_product = p.id_product;
+          AND si.id_variant = pv.id_variant;
           
     END IF;
     
@@ -391,30 +376,36 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger para reducir stock cuando se aprueba el pago
-CREATE TRIGGER trg_reduce_stock_on_payment
+CREATE TRIGGER trg_reduce_variant_stock
     AFTER UPDATE ON sales
     FOR EACH ROW
-    EXECUTE FUNCTION reduce_product_stock();
+    EXECUTE FUNCTION reduce_variant_stock();
 
 -- ----------------------------------------------------------------------------
 -- 6. POLÍTICAS RLS (Row Level Security) - SEGURIDAD
 -- ----------------------------------------------------------------------------
 
 -- Habilitar RLS en todas las tablas principales
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE variant_images ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sales ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sale_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE variant_images      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sales               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sale_items          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE product_variants    ENABLE ROW LEVEL SECURITY;
 
 -- Política para products: lectura pública de productos activos
 CREATE POLICY "Public read active products" ON products
     FOR SELECT
-    USING (id_status = (SELECT id_status FROM product_status WHERE description = 'active'));
+    USING (cod_status = 'A');
+
+-- Política para product_variants: lectura pública de variantes activas con stock
+CREATE POLICY "Public read active variants" ON product_variants
+    FOR SELECT
+    USING (cod_status = 'A');
 
 -- Política para variant_images: lectura pública de imágenes activas
 CREATE POLICY "Public read active images" ON variant_images
     FOR SELECT
-    USING (id_status = (SELECT id_status FROM image_status WHERE description = 'active'));
+    USING (cod_status = 'A');
 
 -- Política para sales: inserción pública (crear órdenes)
 CREATE POLICY "Public insert sales" ON sales
@@ -446,29 +437,35 @@ CREATE POLICY "Read sale_items from accessible sales" ON sale_items
 -- 7. COMENTARIOS EN TABLAS Y COLUMNAS (DOCUMENTACIÓN)
 -- ----------------------------------------------------------------------------
 
-COMMENT ON TABLE products IS 'Catálogo de productos del ecommerce';
-COMMENT ON COLUMN products.base_price IS 'Precio aproximado del costo de producción.';
-COMMENT ON COLUMN products.sku IS 'Código único de producto (Stock Keeping Unit)';
+COMMENT ON TABLE products                           IS 'Catálogo de productos del ecommerce';
+COMMENT ON COLUMN products.base_price               IS 'Precio aproximado del costo de producción.';
+COMMENT ON COLUMN products.sku                      IS 'Código único de producto (Stock Keeping Unit)';
 
-COMMENT ON TABLE product_variants IS 'Variantes de productos: cada combinación de producto + talle + color';
-COMMENT ON COLUMN product_variants.price IS 'Precio a mostrar al cliente';
+COMMENT ON TABLE product_variants                   IS 'Variantes de productos: cada combinación de producto + talle + color';
+COMMENT ON COLUMN product_variants.price            IS 'Precio a mostrar al cliente';
 
-COMMENT ON TABLE variant_images IS 'Imágenes específicas de cada variante (ej: foto del producto en color rojo)';
-COMMENT ON COLUMN variant_images.order_position IS 'Orden de visualización (1 = imagen principal)';
+COMMENT ON TABLE variant_images                     IS 'Imágenes específicas de cada variante (ej: foto del producto en color rojo)';
+COMMENT ON COLUMN variant_images.order_position     IS 'Orden de visualización (1 = imagen principal)';
 
-COMMENT ON TABLE sales IS 'Registro de ventas/órdenes de compra';
-COMMENT ON COLUMN sales.mp_payment_id IS 'ID de transacción de Mercado Pago';
-COMMENT ON COLUMN sales.mp_preference_id IS 'ID de preferencia de Mercado Pago';
+COMMENT ON TABLE sales                              IS 'Registro de ventas/órdenes de compra';
+COMMENT ON COLUMN sales.mp_payment_id               IS 'ID de transacción de Mercado Pago';
+COMMENT ON COLUMN sales.mp_preference_id            IS 'ID de preferencia de Mercado Pago';
 
-COMMENT ON TABLE sale_items IS 'Items individuales de cada venta (snapshot de productos al momento de venta)';
-COMMENT ON COLUMN sale_items.product_name IS 'Nombre del producto al momento de la venta (snapshot)';
-COMMENT ON COLUMN sale_items.unit_price IS 'Precio unitario al momento de la venta (snapshot)';
+COMMENT ON TABLE sale_items                         IS 'Items individuales de cada venta (snapshot de productos al momento de venta)';
+COMMENT ON COLUMN sale_items.product_name           IS 'Nombre del producto al momento de la venta (snapshot)';
+COMMENT ON COLUMN sale_items.variant_description    IS 'Descripción de la variante (ej: "Rojo - Talle M")';
+COMMENT ON COLUMN sale_items.unit_price             IS 'Precio unitario al momento de la venta (snapshot)';
+
+COMMENT ON VIEW v_products_for_listing              IS 'Vista para listado de productos en homepage. Incluye array de imágenes de variantes para carousel.';
+COMMENT ON VIEW v_variants_by_size                  IS 'Vista organizada por TALLE → COLORES. Ideal para selector de variantes.';
+COMMENT ON VIEW v_variant_images                    IS 'Todas las imágenes de cada variante para carousels.';
+COMMENT ON VIEW v_product_detail                    IS 'Vista completa para página de detalle de producto.';
 
 -- ----------------------------------------------------------------------------
 -- 8. VISTAS ÚTILES
 -- ----------------------------------------------------------------------------
 
--- Vista de productos con información completa
+-- Vista de productos con información completa (Está desactualizada, ver si aún sirve o si es reemplazada con otra)
 CREATE OR REPLACE VIEW v_products_complete AS
 SELECT 
     p.id_product,
@@ -492,6 +489,390 @@ SELECT
 FROM products p
 JOIN categories c ON p.id_category = c.id_category
 JOIN product_status ps ON p.id_status = ps.id_status;
+
+-- Vista de productos con stock disponible y rango de precios (reemplaza a la anterior?)
+-- Tener en cuenta que lo que quiero es que me devuelva la información del producto en general, junto con:
+-- Quiero una imagen de cada color que el producto tenga (Aún cuando el producto no esté disponible en ese color (no en colores no existan en el producto).)
+-- Es decir que main_images debe devolver un conjunto de imágenes con una imagen por color que tenga declarado el producto y sin repetir.
+-- Quiero mantenerle a esta view el nombre v_products_complete. 
+-- No quiero una imagen por variantes como dijimos antes, sino una imagen por color. Entonces si un producto tiene 3 colores, quiero que me devuelva 
+-- 3 imágenes (1 por cada color) aunque el producto tenga 10 variantes (combinaciones de colores y talles).
+CREATE OR REPLACE VIEW v_products_for_listing AS
+SELECT 
+    p.id_product,
+    p.name AS product_name,
+    p.description,
+    p.base_price,
+    c.description AS category,
+    ps.description AS status,
+    p.sku_prefix,
+    
+    -- Stock total de todas las variantes
+    COALESCE(SUM(pv.stock), 0) AS total_stock,
+    
+    -- Rango de precios
+    MIN(pv.price) AS min_price,
+    MAX(pv.price) AS max_price,
+    
+    -- Cantidad de variantes, colores y talles
+    COUNT(DISTINCT pv.id_variant) AS variant_count,
+    COUNT(DISTINCT pv.id_color) AS color_count,
+    COUNT(DISTINCT pv.id_size) AS size_count,
+    
+    p.created_at,
+    p.updated_at,
+    
+    -- Array de imágenes principales de cada variante (para carousel en homepage)
+    COALESCE(
+        (
+            SELECT json_agg(
+                json_build_object(
+                    'id_variant', pv2.id_variant,
+                    'image_url', vi.image_url,
+                    'color_name', col.name,
+                    'color_description', col.description,
+                    'hex_code', col.hex_code
+                )
+                ORDER BY col.id_color
+            )
+            FROM product_variants pv2
+            JOIN colors col ON pv2.id_color = col.id_color
+            LEFT JOIN LATERAL (
+                SELECT image_url
+                FROM variant_images vi2
+                WHERE vi2.id_variant = pv2.id_variant
+                  AND vi2.cod_status = 'A'
+                ORDER BY vi2.order_position
+                LIMIT 1
+            ) vi ON true
+            WHERE pv2.id_product = p.id_product
+              AND pv2.cod_status = 'A'
+            GROUP BY pv2.id_variant, col.id_color, col.name, col.description, col.hex_code, vi.image_url
+        ),
+        '[]'::json
+    ) AS variant_images
+    
+FROM products p
+JOIN categories c ON p.id_category = c.id_category
+JOIN product_status ps ON p.id_status = ps.id_status
+LEFT JOIN product_variants pv ON p.id_product = pv.id_product 
+    AND pv.cod_status = 'A'
+GROUP BY p.id_product, c.description, ps.description;
+
+-- Esta vista organiza: Producto → Talles → Colores disponibles en cada talle
+CREATE OR REPLACE VIEW v_variants_by_size AS
+SELECT 
+    p.id_product,
+    p.name AS product_name,
+    s.id_size,
+    s.size,
+    s.sort_order,
+    s.description AS size_description,
+    
+    -- Array de colores disponibles en este talle
+    json_agg(
+        json_build_object(
+            'id_variant', pv.id_variant,
+            'id_color', c.id_color,
+            'color_name', c.name,
+            'color_description', c.description,
+            'hex_code', c.hex_code,
+            'stock', pv.stock,
+            'price', pv.price,
+            'sku', pv.sku,
+            'main_image', (
+                SELECT image_url
+                FROM variant_images vi
+                WHERE vi.id_variant = pv.id_variant
+                  AND vi.cod_status = 'A'
+                ORDER BY vi.order_position
+                LIMIT 1
+            )
+        )
+        ORDER BY c.id_color
+    ) AS available_colors
+    
+FROM products p
+JOIN product_variants pv ON p.id_product = pv.id_product
+JOIN sizes s ON pv.id_size = s.id_size
+JOIN colors c ON pv.id_color = c.id_color
+WHERE pv.cod_status = 'A'
+GROUP BY p.id_product, p.name AS product_name, s.id_size, s.size, s.sort_order, s.description
+ORDER BY p.id_product, s.sort_order;
+
+-- Esta vista trae todas las imágenes de una variante específica (para usar cuando se ingresa a la vista de un producto en específico y se 
+-- selecciona una variante)
+CREATE OR REPLACE VIEW v_variant_images AS
+SELECT 
+    vi.id_image,
+    vi.id_variant,
+    vi.image_url,
+    vi.order_position,
+    vis.description AS status,
+    
+    -- Info de la variante
+    pv.id_product,
+    p.name_product,
+    c.name AS color_name,
+    c.description AS color_description,
+    c.hex_code,
+    s.size,
+    s.description AS size_description,
+    
+    vi.created_at
+FROM variant_images vi
+JOIN image_status vis ON vi.id_status = vis.id_status
+JOIN product_variants pv ON vi.id_variant = pv.id_variant
+JOIN products p ON pv.id_product = p.id_product
+JOIN colors c ON pv.id_color = c.id_color
+JOIN sizes s ON pv.id_size = s.id_size
+WHERE vi.id_status = (SELECT id_status FROM image_status WHERE description = 'active')
+ORDER BY vi.id_variant, vi.order_position;
+
+-- Esta vista trae todo lo necesario para la página de detalle de producto
+CREATE OR REPLACE VIEW v_product_detail AS
+SELECT 
+    p.id_product,
+    p.name_product,
+    p.description,
+    p.base_price,
+    p.sku_prefix,
+    cat.description AS category,
+    ps.description AS status,
+    
+    -- Metadata de variantes
+    COUNT(DISTINCT pv.id_variant) AS total_variants,
+    COUNT(DISTINCT pv.id_size) AS total_sizes,
+    COUNT(DISTINCT pv.id_color) AS total_colors,
+    COALESCE(SUM(pv.stock), 0) AS total_stock,
+    MIN(pv.price) AS min_price,
+    MAX(pv.price) AS max_price,
+    
+    -- Array de talles disponibles
+    json_agg(DISTINCT 
+        json_build_object(
+            'id_size', s.id_size,
+            'size', s.size,
+            'description', s.description,
+            'sort_order', s.sort_order
+        )
+        ORDER BY json_build_object(
+            'id_size', s.id_size,
+            'size', s.size,
+            'description', s.description,
+            'sort_order', s.sort_order
+        )->>'sort_order'
+    ) FILTER (WHERE s.id_size IS NOT NULL) AS available_sizes,
+    
+    p.created_at,
+    p.updated_at
+    
+FROM products p
+JOIN categories cat ON p.id_category = cat.id_category
+JOIN product_status ps ON p.id_status = ps.id_status
+LEFT JOIN product_variants pv ON p.id_product = pv.id_product
+    AND pv.id_status = (SELECT id_status FROM product_status WHERE description = 'active')
+LEFT JOIN sizes s ON pv.id_size = s.id_size
+GROUP BY p.id_product, cat.description, ps.description;
+
+-- Función auxiliar para obtener una variante con todas sus imágenes
+CREATE OR REPLACE FUNCTION get_variant_with_images(p_id_variant UUID)
+RETURNS json AS $$
+DECLARE
+    result json;
+BEGIN
+    SELECT json_build_object(
+        'id_variant', pv.id_variant,
+        'id_product', pv.id_product,
+        'product_name', p.name_product,
+        'sku', pv.sku,
+        'price', pv.price,
+        'stock', pv.stock,
+        'color', json_build_object(
+            'id_color', c.id_color,
+            'name', c.name,
+            'description', c.description,
+            'hex_code', c.hex_code
+        ),
+        'size', json_build_object(
+            'id_size', s.id_size,
+            'size', s.size,
+            'description', s.description
+        ),
+        'images', COALESCE(
+            (
+                SELECT json_agg(
+                    json_build_object(
+                        'id_image', vi.id_image,
+                        'image_url', vi.image_url,
+                        'order_position', vi.order_position
+                    )
+                    ORDER BY vi.order_position
+                )
+                FROM variant_images vi
+                WHERE vi.id_variant = pv.id_variant
+                  AND vi.id_status = (SELECT id_status FROM image_status WHERE description = 'active')
+            ),
+            '[]'::json
+        )
+    ) INTO result
+    FROM product_variants pv
+    JOIN products p ON pv.id_product = p.id_product
+    JOIN colors c ON pv.id_color = c.id_color
+    JOIN sizes s ON pv.id_size = s.id_size
+    WHERE pv.id_variant = p_id_variant;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE VIEW v_product_variants_complete AS
+SELECT 
+    pv.id_variant,
+    pv.id_product,
+    p.name_product,
+    p.description AS product_description,
+    p.sku_prefix,
+    pv.sku,
+    pv.price,
+    pv.stock,
+    
+    -- Color info
+    col.id_color,
+    col.name AS color_name,
+    col.description AS color_description,
+    col.hex_code,
+    
+    -- Size info
+    sz.id_size,
+    sz.size,
+    sz.description AS size_description,
+    sz.sort_order,
+    
+    -- Category
+    cat.description AS category,
+    
+    -- Status
+    ps.description AS status,
+    
+    -- Main image de la variante
+    (
+        SELECT image_url 
+        FROM variant_images vi 
+        WHERE vi.id_variant = pv.id_variant 
+        AND vi.id_status = (SELECT id_status FROM image_status WHERE description = 'active')
+        ORDER BY vi.order_position 
+        LIMIT 1
+    ) AS main_image,
+    
+    -- Cantidad de imágenes
+    (
+        SELECT COUNT(*)
+        FROM variant_images vi 
+        WHERE vi.id_variant = pv.id_variant 
+        AND vi.id_status = (SELECT id_status FROM image_status WHERE description = 'active')
+    ) AS image_count,
+    
+    pv.created_at,
+    pv.updated_at
+    
+FROM product_variants pv
+JOIN products p ON pv.id_product = p.id_product
+JOIN colors col ON pv.id_color = col.id_color
+JOIN sizes sz ON pv.id_size = sz.id_size
+JOIN categories cat ON p.id_category = cat.id_category
+JOIN product_status ps ON pv.id_status = ps.id_status;
+
+-- Vista de variantes completas (Esta vista no es útil por ahora, la dejo igualmente pero será utilizada por los admins cuando los haya)
+CREATE OR REPLACE VIEW v_product_variants_complete AS
+SELECT 
+    pv.id_variant,
+    pv.id_product,
+    p.name AS product_name,
+    p.description AS product_desc,
+    pv.sku,
+    pv.price,
+    pv.stock,
+    
+    col.id_color,
+    col.name AS color_name,
+    col.description AS color_desc,
+    col.hex_code,
+    
+    sz.id_size,
+    sz.size,
+    sz.description AS size_desc,
+    sz.sort_order,
+    
+    cat.description AS category,
+    
+    ps.description AS status,
+    
+    (
+        SELECT image_url 
+        FROM variant_images vi 
+        WHERE vi.id_variant = pv.id_variant 
+        AND vi.cod_status = 'A'
+        ORDER BY vi.order_position 
+        LIMIT 1
+    ) AS variant_image,
+    
+    (
+        SELECT image_url 
+        FROM product_images pi 
+        WHERE pi.id_product = p.id_product 
+        AND pi.cod_status = 'A'
+        ORDER BY pi.order_position 
+        LIMIT 1
+    ) AS product_main_image,
+    
+    pv.created_at,
+    pv.updated_at
+FROM product_variants pv
+JOIN products p ON pv.id_product = p.id_product
+JOIN colors col ON pv.id_color = col.id_color
+JOIN sizes sz ON pv.id_size = sz.id_size
+JOIN categories cat ON p.id_category = cat.id_category
+JOIN product_status ps ON pv.cod_status = ps.cod_status;
+
+-- Vista de colores disponibles por producto (Esta vista no es útil por ahora, la dejo igualmente pero será utilizada por los admins cuando los haya)
+CREATE OR REPLACE VIEW v_product_available_colors AS
+SELECT 
+    p.id_product,
+    p.name AS product_name,
+    c.id_color,
+    c.name AS color_name,
+    c.description AS color_desc,
+    c.hex_code,
+    SUM(pv.stock) AS total_stock_in_color,
+    COUNT(DISTINCT pv.id_size) AS available_sizes
+FROM products p
+JOIN product_variants pv ON p.id_product = pv.id_product
+JOIN colors c ON pv.id_color = c.id_color
+WHERE pv.cod_status = 'A'
+GROUP BY p.id_product, p.name AS product_name, c.id_color, c.name AS color_name, c.description AS color_desc, c.hex_code
+HAVING SUM(pv.stock) > 0;
+
+-- Vista de talles disponibles por producto y color (Esta vista no es útil por ahora, la dejo igualmente pero será utilizada por los admins cuando los haya)
+CREATE OR REPLACE VIEW v_product_available_sizes AS
+SELECT 
+    p.id_product,
+    p.name AS product_name,
+    c.id_color,
+    c.description AS color_desc,
+    s.id_size,
+    s.size,
+    s.sort_order,
+    pv.id_variant,
+    pv.stock,
+    pv.price
+FROM products p
+JOIN product_variants pv ON p.id_product = pv.id_product
+JOIN colors c ON pv.id_color = c.id_color
+JOIN sizes s ON pv.id_size = s.id_size
+WHERE pv.cod_status = 'A'
+  AND pv.stock > 0
+ORDER BY p.id_product, c.id_color, s.sort_order;
 
 -- Vista de ventas con información completa
 CREATE OR REPLACE VIEW v_sales_complete AS
