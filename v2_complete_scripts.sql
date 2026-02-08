@@ -56,6 +56,31 @@ CREATE TABLE payment_methods (
     updated_at  TIMESTAMP   NULL
 );
 
+-- Catálogo de talles
+CREATE TABLE sizes (
+    id_size     SERIAL      PRIMARY KEY,
+    size        VARCHAR(3)  NOT NULL UNIQUE,
+    id_category INTEGER     NOT NULL REFERENCES categories(id_category),
+    description TEXT        NULL,
+    sort_order  INTEGER     NOT NULL DEFAULT 0,
+    cod_status  VARCHAR(2)  NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
+    created_at  TIMESTAMP   NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP   NULL,
+
+    CONSTRAINT uq_size_category UNIQUE (size, id_category)
+);
+
+-- Catálogo de colores
+CREATE TABLE colors (
+    id_color    SERIAL PRIMARY KEY,
+    name        VARCHAR(50)     NOT NULL UNIQUE,
+    description VARCHAR(100)    NOT NULL UNIQUE,
+    hex_code    VARCHAR(7)      NOT NULL UNIQUE,
+    cod_status  VARCHAR(2)      NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
+    created_at  TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP       NULL
+);
+
 -- ----------------------------------------------------------------------------
 -- 2. INSERTAR DATOS INICIALES EN TABLAS PARAMÉTRICAS
 -- ----------------------------------------------------------------------------
@@ -68,10 +93,11 @@ INSERT INTO status (cod_status, description) VALUES
 
 -- Categorías
 INSERT INTO categories (name, description) VALUES 
-    ('girls', 'niñas'),
-    ('boys' , 'niños'),
-    ('men'  , 'hombres'),
-    ('women', 'mujeres');
+    ('girls'    , 'niñas'),
+    ('boys'     , 'niños'),
+    ('men'      , 'hombres'),
+    ('women'    , 'mujeres'),
+    ('unisex'   , 'unisex');
 
 -- Estados de ventas
 INSERT INTO sale_status (name, description) VALUES 
@@ -94,6 +120,52 @@ INSERT INTO payment_methods (name, description) VALUES
     ('transfer'     , 'transferencia'),
     ('efective'     , 'efectivo');
 
+-- Talles para Niños (unisex) (id_category = 5)
+INSERT INTO sizes (size, id_category, description, sort_order, cod_status) VALUES 
+    ('2'    , 5, 'Talle 2 - Aprox. 2 años'  , 1, 'A'),
+    ('4'    , 5, 'Talle 4 - Aprox. 4 años'  , 2, 'A'),
+    ('6'    , 5, 'Talle 6 - Aprox. 6 años'  , 3, 'A'),
+    ('8'    , 5, 'Talle 8 - Aprox. 8 años'  , 4, 'A'),
+    ('10'   , 5, 'Talle 10 - Aprox. 10 años', 5, 'A'),
+    ('12'   , 5, 'Talle 12 - Aprox. 12 años', 6, 'A'),
+    ('14'   , 5, 'Talle 14 - Aprox. 14 años', 7, 'A');
+
+-- Talles para Hombres (id_category = 2)
+INSERT INTO sizes (size, id_category, description, sort_order, cod_status) VALUES 
+    ('XS'   , 2, 'Extra Small'  , 1, 'A'),
+    ('S'    , 2, 'Small'        , 2, 'A'),
+    ('M'    , 2, 'Medium'       , 3, 'A'),
+    ('L'    , 2, 'Large'        , 4, 'A'),
+    ('XL'   , 2, 'Extra Large'  , 5, 'A'),
+    ('XXL'  , 2, '2X Large'     , 6, 'A'),
+    ('XXXL' , 2, '3X Large'     , 7, 'A');
+
+-- Talles para Mujeres (id_category = 3)
+INSERT INTO sizes (size, id_category, description, sort_order, cod_status) VALUES 
+    ('XS'   , 3, 'Extra Small'  , 1, 'A'),
+    ('S'    , 3, 'Small'        , 2, 'A'),
+    ('M'    , 3, 'Medium'       , 3, 'A'),
+    ('L'    , 3, 'Large'        , 4, 'A'),
+    ('XL'   , 3, 'Extra Large'  , 5, 'A'),
+    ('XXL'  , 3, '2X Large'     , 6, 'A');
+
+-- Datos iniciales de colors
+INSERT INTO colors (name, description, hex_code, cod_status) VALUES 
+    ('red'      , 'Rojo'        , '#FF0000', 'A'),
+    ('blue'     , 'Azul'        , '#0000FF', 'A'),
+    ('green'    , 'Verde'       , '#00FF00', 'A'),
+    ('black'    , 'Negro'       , '#000000', 'A'),
+    ('white'    , 'Blanco'      , '#FFFFFF', 'A'),
+    ('yellow'   , 'Amarillo'    , '#FFFF00', 'A'),
+    ('pink'     , 'Rosa'        , '#FF69B4', 'A'),
+    ('gray'     , 'Gris'        , '#808080', 'A'),
+    ('brown'    , 'Marrón'      , '#8B4513', 'A'),
+    ('orange'   , 'Naranja'     , '#FFA500', 'A'),
+    ('purple'   , 'Violeta'     , '#800080', 'A'),
+    ('beige'    , 'Beige'       , '#F5F5DC', 'A'),
+    ('navy'     , 'Azul Marino' , '#000080', 'A'),
+    ('turquoise', 'Turquesa'    , '#40E0D0', 'A');
+
 -- ----------------------------------------------------------------------------
 -- 3. TABLAS PRINCIPALES
 -- ----------------------------------------------------------------------------
@@ -104,25 +176,42 @@ CREATE TABLE products (
     name            VARCHAR(255)    NOT NULL UNIQUE,
     short_desc      VARCHAR(255)    NOT NULL,
     long_desc       TEXT            NOT NULL,
-    price           DECIMAL(10, 2)  NOT NULL CHECK (price >= 0),
+    base_price      DECIMAL(10, 2)  NOT NULL CHECK (base_price >= 0),
     id_category     INTEGER         NOT NULL REFERENCES categories(id_category),
-    sku             VARCHAR(100)    NOT NULL UNIQUE,
     cod_status      VARCHAR(2)      NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
     created_at      TIMESTAMP       NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMP       NULL
+    updated_at      TIMESTAMP       NULL,
     
-    CONSTRAINT chk_price_positive CHECK (price >= 0)
+    CONSTRAINT chk_base_price_positive CHECK (base_price >= 0)
 );
 
--- Tabla de imágenes de productos
-CREATE TABLE product_images (
-    id_image UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    id_product UUID NOT NULL REFERENCES products(id_product) ON DELETE CASCADE,
-    image_url VARCHAR(500) NOT NULL,
-    order_position INTEGER NOT NULL CHECK (order_position > 0),
-    id_status INTEGER NOT NULL REFERENCES image_status(id_status),
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT uq_product_order UNIQUE (id_product, order_position)
+-- Tabla de variantes por productos (Talles por cada productos y colores por cada talle)
+CREATE TABLE product_variants (
+    id_variant  UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_product  UUID            NOT NULL REFERENCES products(id_product) ON DELETE CASCADE,
+    id_color    INTEGER         NOT NULL REFERENCES colors(id_color),
+    id_size     INTEGER         NOT NULL REFERENCES sizes(id_size),
+    sku         VARCHAR(100)    NOT NULL UNIQUE,
+    price       DECIMAL(10, 2)  NOT NULL CHECK (price >= 0),
+    stock       INTEGER         NOT NULL DEFAULT 0 CHECK (stock >= 0),
+    cod_status  VARCHAR(2)      NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
+    created_at  TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP       NULL,
+
+    CONSTRAINT uq_product_color_size UNIQUE (id_product, id_color, id_size)
+);
+
+-- Tabla de imágenes por variante de productos
+CREATE TABLE variant_images (
+    id_image        UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_variant      UUID            NOT NULL REFERENCES product_variants(id_variant) ON DELETE CASCADE,
+    image_url       VARCHAR(500)    NOT NULL,
+    order_position  INTEGER         NOT NULL CHECK (order_position > 0),
+    cod_status      VARCHAR(2)      NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
+    created_at      TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP       NULL,
+
+    CONSTRAINT uq_variant_order UNIQUE (id_variant, order_position)
 );
 
 -- Tabla de ventas
@@ -145,11 +234,30 @@ CREATE TABLE sales (
     updated_at TIMESTAMP NULL
 );
 
+
+-- HAY QUE REVISAR ESTE, ME QUEDÉ HASTA ACÁ EN EL PASO 6 DEL MENSAJE DE 19:45 DEL 06/02/2026
+CREATE TABLE sale_items (
+    id_sale_item UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_sale UUID NOT NULL REFERENCES sales(id_sale) ON DELETE CASCADE,
+    id_variant UUID NOT NULL REFERENCES product_variants(id_variant),
+    
+    -- Snapshot al momento de la venta
+    product_name VARCHAR(255) NOT NULL,
+    variant_description VARCHAR(255) NOT NULL,
+    sku VARCHAR(100) NOT NULL,
+    unit_price DECIMAL(10, 2) NOT NULL CHECK (unit_price >= 0),
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    subtotal DECIMAL(10, 2) NOT NULL CHECK (subtotal >= 0),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+
+
 -- Tabla de items de venta
 CREATE TABLE sale_items (
     id_sale_item UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     id_sale UUID NOT NULL REFERENCES sales(id_sale) ON DELETE CASCADE,
-    id_product UUID NOT NULL REFERENCES products(id_product),
+    id_variant UUID NOT NULL REFERENCES product_variants(id_variant),
     product_name VARCHAR(255) NOT NULL,
     unit_price DECIMAL(10, 2) NOT NULL CHECK (unit_price >= 0),
     quantity INTEGER NOT NULL CHECK (quantity > 0),
@@ -166,9 +274,16 @@ CREATE INDEX idx_products_category ON products(id_category);
 CREATE INDEX idx_products_status ON products(id_status);
 CREATE INDEX idx_products_sku ON products(sku);
 
--- Índices en product_images
-CREATE INDEX idx_product_images_product ON product_images(id_product);
-CREATE INDEX idx_product_images_status ON product_images(id_status);
+-- Índices en product_variants
+CREATE INDEX idx_variants_product ON product_variants(id_product);
+CREATE INDEX idx_variants_color ON product_variants(id_color);
+CREATE INDEX idx_variants_size ON product_variants(id_size);
+CREATE INDEX idx_variants_status ON product_variants(id_status);
+CREATE INDEX idx_variants_sku ON product_variants(sku);
+
+-- Índices en variant_images
+CREATE INDEX idx_variant_images_variant ON variant_images(id_variant);
+CREATE INDEX idx_variant_images_status ON variant_images(id_status);
 
 -- Índices en sales
 CREATE INDEX idx_sales_status ON sales(id_sale_status);
@@ -198,6 +313,12 @@ $$ LANGUAGE plpgsql;
 -- Trigger para products
 CREATE TRIGGER trg_products_updated_at
     BEFORE UPDATE ON products
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Trigger para updated_at
+CREATE TRIGGER trg_variants_updated_at
+    BEFORE UPDATE ON product_variants
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
@@ -281,7 +402,7 @@ CREATE TRIGGER trg_reduce_stock_on_payment
 
 -- Habilitar RLS en todas las tablas principales
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE product_images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE variant_images ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sale_items ENABLE ROW LEVEL SECURITY;
 
@@ -290,8 +411,8 @@ CREATE POLICY "Public read active products" ON products
     FOR SELECT
     USING (id_status = (SELECT id_status FROM product_status WHERE description = 'active'));
 
--- Política para product_images: lectura pública de imágenes activas
-CREATE POLICY "Public read active images" ON product_images
+-- Política para variant_images: lectura pública de imágenes activas
+CREATE POLICY "Public read active images" ON variant_images
     FOR SELECT
     USING (id_status = (SELECT id_status FROM image_status WHERE description = 'active'));
 
@@ -326,11 +447,14 @@ CREATE POLICY "Read sale_items from accessible sales" ON sale_items
 -- ----------------------------------------------------------------------------
 
 COMMENT ON TABLE products IS 'Catálogo de productos del ecommerce';
+COMMENT ON COLUMN products.base_price IS 'Precio aproximado del costo de producción.';
 COMMENT ON COLUMN products.sku IS 'Código único de producto (Stock Keeping Unit)';
-COMMENT ON COLUMN products.stock IS 'Cantidad disponible en inventario';
 
-COMMENT ON TABLE product_images IS 'Imágenes de productos (múltiples por producto)';
-COMMENT ON COLUMN product_images.order_position IS 'Orden de visualización (1 = imagen principal)';
+COMMENT ON TABLE product_variants IS 'Variantes de productos: cada combinación de producto + talle + color';
+COMMENT ON COLUMN product_variants.price IS 'Precio a mostrar al cliente';
+
+COMMENT ON TABLE variant_images IS 'Imágenes específicas de cada variante (ej: foto del producto en color rojo)';
+COMMENT ON COLUMN variant_images.order_position IS 'Orden de visualización (1 = imagen principal)';
 
 COMMENT ON TABLE sales IS 'Registro de ventas/órdenes de compra';
 COMMENT ON COLUMN sales.mp_payment_id IS 'ID de transacción de Mercado Pago';
@@ -359,11 +483,11 @@ SELECT
     p.updated_at,
     (
         SELECT image_url 
-        FROM product_images pi 
+        FROM variant_images pi
+        JOIN product_variants pv ON pi.id_variant = pv.id_variant
         WHERE pi.id_product = p.id_product 
-        AND pi.id_status = (SELECT id_status FROM image_status WHERE description = 'active')
-        ORDER BY pi.order_position 
-        LIMIT 1
+        AND pi.cod_status = 'A'
+        AND pi.order_position = 1
     ) AS main_image
 FROM products p
 JOIN categories c ON p.id_category = c.id_category
