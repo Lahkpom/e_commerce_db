@@ -500,6 +500,7 @@ SELECT
     p.short_desc,
     p.long_desc,
     p.base_price,
+    p.id_category,
     c.description   AS category,
     p.cod_status    AS status,
     
