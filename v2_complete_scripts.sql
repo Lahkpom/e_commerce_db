@@ -160,17 +160,9 @@ INSERT INTO sizes (size, id_category, description, sort_order) VALUES
     ('38'   , 4, 'Talle 38 - Mujer'     , 4),
     ('39'   , 4, 'Talle 39 - Mujer'     , 5),
     ('40'   , 4, 'Talle 40 - Mujer'     , 6),
-    ('41'   , 4, 'Talle 41 - Mujer'     , 7),
-    ('42'   , 4, 'Talle 42 - Mujer'     , 8),
-    ('43'   , 4, 'Talle 43 - Mujer'     , 9),
-    ('44'   , 4, 'Talle 44 - Mujer'     , 10),
-    ('45'   , 4, 'Talle 45 - Mujer'     , 11),
     ('35/36', 4, 'Talle 35/36 - Mujer'  , 1),
     ('37/38', 4, 'Talle 37/38 - Mujer'  , 2),
-    ('39/40', 4, 'Talle 39/40 - Mujer'  , 3),
-    ('41/42', 4, 'Talle 41/42 - Mujer'  , 4),
-    ('43/44', 4, 'Talle 43/44 - Mujer'  , 5),
-    ('45/46', 4, 'Talle 45/46 - Mujer'  , 6);
+    ('39/40', 4, 'Talle 39/40 - Mujer'  , 3);
 
 -- Datos iniciales de colors
 INSERT INTO colors (name, description, hex_code) VALUES 
@@ -424,7 +416,7 @@ BEGIN
         UPDATE product_variants pv
         SET stock = stock - si.quantity
         FROM sale_items si
-        WHERE si.id_sale = NEW.id_sale
+        WHERE si.id_sale    = NEW.id_sale
           AND si.id_variant = pv.id_variant;
           
     END IF;
@@ -457,52 +449,38 @@ ALTER TABLE sales               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sale_items          ENABLE ROW LEVEL SECURITY;
 
 -- Políticas públicas de lectura para tablas paramétricas
-CREATE POLICY "Public read status" ON status
-    FOR SELECT USING (true);
+CREATE POLICY "Public read status"          ON status           FOR SELECT USING (true);
 
-CREATE POLICY "Public read categories" ON categories
-    FOR SELECT USING (cod_status = 'A');
+CREATE POLICY "Public read categories"      ON categories       FOR SELECT USING (cod_status = 'A');
 
-CREATE POLICY "Public read sale_status" ON sale_status
-    FOR SELECT USING (cod_status = 'A');
+CREATE POLICY "Public read sale_status"     ON sale_status      FOR SELECT USING (cod_status = 'A');
 
-CREATE POLICY "Public read payment_status" ON payment_status
-    FOR SELECT USING (cod_status = 'A');
+CREATE POLICY "Public read payment_status"  ON payment_status   FOR SELECT USING (cod_status = 'A');
 
-CREATE POLICY "Public read payment_methods" ON payment_methods
-    FOR SELECT USING (cod_status = 'A');
+CREATE POLICY "Public read payment_methods" ON payment_methods  FOR SELECT USING (cod_status = 'A');
 
-CREATE POLICY "Public read sizes" ON sizes
-    FOR SELECT USING (cod_status = 'A');
+CREATE POLICY "Public read sizes"           ON sizes            FOR SELECT USING (cod_status = 'A');
 
-CREATE POLICY "Public read colors" ON colors
-    FOR SELECT USING (cod_status = 'A');
+CREATE POLICY "Public read colors"          ON colors           FOR SELECT USING (cod_status = 'A');
 
 -- Políticas para products
-CREATE POLICY "Public read active products" ON products
-    FOR SELECT USING (cod_status = 'A');
+CREATE POLICY "Public read active products" ON products         FOR SELECT USING (cod_status = 'A');
 
 -- Políticas para product_variants
-CREATE POLICY "Public read active variants" ON product_variants
-    FOR SELECT USING (cod_status = 'A');
+CREATE POLICY "Public read active variants" ON product_variants FOR SELECT USING (cod_status = 'A');
 
 -- Políticas para variant_images
-CREATE POLICY "Public read active images" ON variant_images
-    FOR SELECT USING (cod_status = 'A');
+CREATE POLICY "Public read active images"   ON variant_images   FOR SELECT USING (cod_status = 'A');
 
 -- Políticas para sales
-CREATE POLICY "Public insert sales" ON sales
-    FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public insert sales"         ON sales            FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Public read sales" ON sales
-    FOR SELECT USING (true);
+CREATE POLICY "Public read sales"           ON sales            FOR SELECT USING (true);
 
 -- Políticas para sale_items
-CREATE POLICY "Public insert sale_items" ON sale_items
-    FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public insert sale_items"    ON sale_items       FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Public read sale_items" ON sale_items
-    FOR SELECT USING (true);
+CREATE POLICY "Public read sale_items"      ON sale_items       FOR SELECT USING (true);
 
 -- ❌ NOTA: La política de "Read sale_items from accessible sales" no funcionará
 -- porque los usuarios no están autenticados en Supabase (no hay JWT).
@@ -518,12 +496,12 @@ CREATE POLICY "Public read sale_items" ON sale_items
 CREATE OR REPLACE VIEW v_products_complete WITH (security_invoker = true) AS
 SELECT 
     p.id_product,
-    p.name AS product_name,
+    p.name          AS product_name,
     p.short_desc,
     p.long_desc,
     p.base_price,
-    c.description AS category,
-    p.cod_status AS status,
+    c.description   AS category,
+    p.cod_status    AS status,
     
     -- Stock total
     COALESCE(SUM(pv.stock), 0) AS total_stock,
@@ -533,9 +511,9 @@ SELECT
     COALESCE(MAX(pv.price), p.base_price) AS max_price,
     
     -- Metadata
-    COUNT(DISTINCT pv.id_variant) AS variant_count,
-    COUNT(DISTINCT pv.id_color) AS color_count,
-    COUNT(DISTINCT pv.id_size) AS size_count,
+    COUNT(DISTINCT pv.id_variant)   AS variant_count,
+    COUNT(DISTINCT pv.id_color)     AS color_count,
+    COUNT(DISTINCT pv.id_size)      AS size_count,
     
     p.created_at,
     p.updated_at,
@@ -545,19 +523,19 @@ SELECT
         (
             SELECT json_agg(
                 json_build_object(
-                    'id_color', col.id_color,
-                    'color_name', col.name,
-                    'color_description', col.description,
-                    'hex_code', col.hex_code,
-                    'image_url', (
+                    'id_color'          , col.id_color,
+                    'color_name'        , col.name,
+                    'color_description' , col.description,
+                    'hex_code'          , col.hex_code,
+                    'image_url'         , (
                         -- Seleccionar la primera imagen de cualquier variante con este color
                         SELECT vi.image_url
                         FROM product_variants pv_inner
                         JOIN variant_images vi ON vi.id_variant = pv_inner.id_variant
-                        WHERE pv_inner.id_product = p.id_product
-                          AND pv_inner.id_color = col.id_color
-                          AND pv_inner.cod_status = 'A'
-                          AND vi.cod_status = 'A'
+                        WHERE pv_inner.id_product   = p.id_product
+                          AND pv_inner.id_color     = col.id_color
+                          AND pv_inner.cod_status   = 'A'
+                          AND vi.cod_status         = 'A'
                         ORDER BY vi.order_position
                         LIMIT 1
                     )
@@ -566,7 +544,11 @@ SELECT
             )
             FROM (
                 -- Obtener colores únicos del producto
-                SELECT DISTINCT c.id_color, c.name, c.description, c.hex_code
+                SELECT DISTINCT 
+                    c.id_color, 
+                    c.name, 
+                    c.description, 
+                    c.hex_code
                 FROM product_variants pv2
                 JOIN colors c ON pv2.id_color = c.id_color
                 WHERE pv2.id_product = p.id_product
@@ -577,34 +559,35 @@ SELECT
     ) AS color_images
     
 FROM products p
-JOIN categories c ON p.id_category = c.id_category
-LEFT JOIN product_variants pv ON p.id_product = pv.id_product 
-    AND pv.cod_status = 'A'
+JOIN categories             c   ON p.id_category    = c.id_category
+LEFT JOIN product_variants  pv  ON p.id_product     = pv.id_product AND pv.cod_status = 'A'
 WHERE p.cod_status = 'A'
 GROUP BY p.id_product, c.description;
 
 -- Vista organizada: Producto → Talles → Colores
-CREATE OR REPLACE VIEW v_variants_by_size WITH (security_invoker = true) AS
+CREATE OR REPLACE VIEW v_variants_by_size 
+WITH (security_invoker = true) 
+AS
 SELECT 
     p.id_product,
-    p.name AS product_name,
+    p.name          AS product_name,
     s.id_size,
     s.size,
     s.sort_order,
-    s.description AS size_description,
+    s.description   AS size_description,
     
     -- Colores disponibles en este talle
     json_agg(
         json_build_object(
-            'id_variant', pv.id_variant,
-            'id_color', c.id_color,
-            'color_name', c.name,
-            'color_description', c.description,
-            'hex_code', c.hex_code,
-            'stock', pv.stock,
-            'price', pv.price,
-            'sku', pv.sku,
-            'main_image', (
+            'id_variant'        , pv.id_variant,
+            'id_color'          , c.id_color,
+            'color_name'        , c.name,
+            'color_description' , c.description,
+            'hex_code'          , c.hex_code,
+            'stock'             , pv.stock,
+            'price'             , pv.price,
+            'sku'               , pv.sku,
+            'main_image'        , (
                 SELECT image_url
                 FROM variant_images vi
                 WHERE vi.id_variant = pv.id_variant
@@ -617,36 +600,38 @@ SELECT
     ) AS available_colors
     
 FROM products p
-JOIN product_variants pv ON p.id_product = pv.id_product
-JOIN sizes s ON pv.id_size = s.id_size
-JOIN colors c ON pv.id_color = c.id_color
+JOIN product_variants   pv  ON p.id_product = pv.id_product
+JOIN sizes              s   ON pv.id_size   = s.id_size
+JOIN colors             c   ON pv.id_color  = c.id_color
 WHERE pv.cod_status = 'A'
 GROUP BY p.id_product, p.name, s.id_size, s.size, s.sort_order, s.description
 ORDER BY p.id_product, s.sort_order;
 
 -- Vista de imágenes de variante específica
-CREATE OR REPLACE VIEW v_variant_images WITH (security_invoker = true) AS
+CREATE OR REPLACE VIEW v_variant_images 
+WITH (security_invoker = true) 
+AS
 SELECT 
     vi.id_image,
     vi.id_variant,
     vi.image_url,
     vi.order_position,
-    vi.cod_status AS status,
+    vi.cod_status   AS status,
     
     pv.id_product,
-    p.name AS product_name,
-    c.name AS color_name,
-    c.description AS color_description,
+    p.name          AS product_name,
+    c.name          AS color_name,
+    c.description   AS color_description,
     c.hex_code,
     s.size,
-    s.description AS size_description,
+    s.description   AS size_description,
     
     vi.created_at
 FROM variant_images vi
-JOIN product_variants pv ON vi.id_variant = pv.id_variant
-JOIN products p ON pv.id_product = p.id_product
-JOIN colors c ON pv.id_color = c.id_color
-JOIN sizes s ON pv.id_size = s.id_size
+JOIN product_variants   pv  ON vi.id_variant    = pv.id_variant
+JOIN products           p   ON pv.id_product    = p.id_product
+JOIN colors             c   ON pv.id_color      = c.id_color
+JOIN sizes              s   ON pv.id_size       = s.id_size
 WHERE vi.cod_status = 'A'
 ORDER BY vi.id_variant, vi.order_position;
 
@@ -672,7 +657,7 @@ ORDER BY vi.id_variant, vi.order_position;
 
 
 
--- HASTA ACÁ LLEGUÉ EN LA EJECUSIÓN PORQUE ME DIÓ UN ERROR
+-- ME DIÓ UN ERROR
 
 
 -- Vista de detalle de producto
@@ -723,6 +708,25 @@ LEFT JOIN sizes s ON pv.id_size = s.id_size
 WHERE p.cod_status = 'A'
 GROUP BY p.id_product, cat.description;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -- Función para obtener variante con imágenes
 CREATE OR REPLACE FUNCTION get_variant_with_images(p_id_variant UUID)
 RETURNS json 
@@ -732,29 +736,32 @@ DECLARE
     result json;
 BEGIN
     SELECT json_build_object(
-        'id_variant', pv.id_variant,
-        'id_product', pv.id_product,
-        'product_name', p.name,
-        'sku', pv.sku,
-        'price', pv.price,
-        'stock', pv.stock,
+        'id_variant'    , pv.id_variant,
+        'id_product'    , pv.id_product,
+        'product_name'  , p.name,
+        'sku'           , pv.sku,
+        'price'         , pv.price,
+        'stock'         , pv.stock,
+
         'color', json_build_object(
-            'id_color', c.id_color,
-            'name', c.name,
-            'description', c.description,
-            'hex_code', c.hex_code
+            'id_color'      , c.id_color,
+            'name'          , c.name,
+            'description'   , c.description,
+            'hex_code'      , c.hex_code
         ),
+
         'size', json_build_object(
-            'id_size', s.id_size,
-            'size', s.size,
-            'description', s.description
+            'id_size'       , s.id_size,
+            'size'          , s.size,
+            'description'   , s.description
         ),
+
         'images', COALESCE(
             (
                 SELECT json_agg(
                     json_build_object(
-                        'id_image', vi.id_image,
-                        'image_url', vi.image_url,
+                        'id_image'      , vi.id_image,
+                        'image_url'     , vi.image_url,
                         'order_position', vi.order_position
                     )
                     ORDER BY vi.order_position
@@ -767,9 +774,9 @@ BEGIN
         )
     ) INTO result
     FROM product_variants pv
-    JOIN products p ON pv.id_product = p.id_product
-    JOIN colors c ON pv.id_color = c.id_color
-    JOIN sizes s ON pv.id_size = s.id_size
+    JOIN products   p ON pv.id_product  = p.id_product
+    JOIN colors     c ON pv.id_color    = c.id_color
+    JOIN sizes      s ON pv.id_size     = s.id_size
     WHERE pv.id_variant = p_id_variant;
     
     RETURN result;
@@ -777,35 +784,37 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Vista de variantes completas
-CREATE OR REPLACE VIEW v_product_variants_complete WITH (security_invoker = true) AS
+CREATE OR REPLACE VIEW v_product_variants_complete 
+WITH (security_invoker = true) 
+AS
 SELECT 
     pv.id_variant,
     pv.id_product,
-    p.name AS product_name,
-    p.short_desc AS product_short_desc,
-    p.long_desc AS product_long_desc,
+    p.name          AS product_name,
+    p.short_desc    AS product_short_desc,
+    p.long_desc     AS product_long_desc,
     pv.sku,
     pv.price,
     pv.stock,
     
     col.id_color,
-    col.name AS color_name,
+    col.name        AS color_name,
     col.description AS color_desc,
     col.hex_code,
     
     sz.id_size,
     sz.size,
-    sz.description AS size_desc,
+    sz.description  AS size_desc,
     sz.sort_order,
     
     cat.description AS category,
-    pv.cod_status AS status,
+    pv.cod_status   AS status,
     
     (
         SELECT image_url 
         FROM variant_images vi 
         WHERE vi.id_variant = pv.id_variant 
-        AND vi.cod_status = 'A'
+        AND vi.cod_status   = 'A'
         ORDER BY vi.order_position 
         LIMIT 1
     ) AS main_image,
@@ -814,20 +823,22 @@ SELECT
         SELECT COUNT(*)
         FROM variant_images vi 
         WHERE vi.id_variant = pv.id_variant 
-        AND vi.cod_status = 'A'
+        AND vi.cod_status   = 'A'
     ) AS image_count,
     
     pv.created_at,
     pv.updated_at
     
 FROM product_variants pv
-JOIN products p ON pv.id_product = p.id_product
-JOIN colors col ON pv.id_color = col.id_color
-JOIN sizes sz ON pv.id_size = sz.id_size
-JOIN categories cat ON p.id_category = cat.id_category;
+JOIN products   p   ON pv.id_product    = p.id_product
+JOIN colors     col ON pv.id_color      = col.id_color
+JOIN sizes      sz  ON pv.id_size       = sz.id_size
+JOIN categories cat ON p.id_category    = cat.id_category;
 
 -- Vista de ventas completas
-CREATE OR REPLACE VIEW v_sales_complete WITH (security_invoker = true) AS
+CREATE OR REPLACE VIEW v_sales_complete 
+WITH (security_invoker = true) 
+AS
 SELECT 
     s.id_sale,
     s.total,
@@ -851,31 +862,308 @@ SELECT
         WHERE si.id_sale = s.id_sale
     ) AS total_items
 FROM sales s
-JOIN sale_status ss ON s.id_sale_status = ss.id_status
-JOIN payment_methods pm ON s.id_payment_method = pm.id_method
-JOIN payment_status ps ON s.id_payment_status = ps.id_status;
+JOIN sale_status        ss ON s.id_sale_status      = ss.id_status
+JOIN payment_methods    pm ON s.id_payment_method   = pm.id_method
+JOIN payment_status     ps ON s.id_payment_status   = ps.id_status;
 
 -- ----------------------------------------------------------------------------
 -- 8. COMENTARIOS
 -- ----------------------------------------------------------------------------
 
-COMMENT ON TABLE products IS 'Catálogo de productos del ecommerce';
-COMMENT ON COLUMN products.base_price IS 'Precio base/referencia de producción';
+COMMENT ON TABLE products                       IS 'Catálogo de productos del ecommerce';
+COMMENT ON COLUMN products.base_price           IS 'Precio base/referencia de producción';
 
-COMMENT ON TABLE product_variants IS 'Variantes: combinación producto + talle + color';
-COMMENT ON COLUMN product_variants.price IS 'Precio de venta al público';
+COMMENT ON TABLE product_variants               IS 'Variantes: combinación producto + talle + color';
+COMMENT ON COLUMN product_variants.price        IS 'Precio de venta al público';
 
-COMMENT ON TABLE variant_images IS 'Imágenes de cada variante';
+COMMENT ON TABLE variant_images                 IS 'Imágenes de cada variante';
 COMMENT ON COLUMN variant_images.order_position IS 'Orden (1 = principal)';
 
-COMMENT ON TABLE sales IS 'Órdenes de compra';
-COMMENT ON TABLE sale_items IS 'Items de cada venta (snapshot)';
+COMMENT ON TABLE sales                          IS 'Órdenes de compra';
+COMMENT ON TABLE sale_items                     IS 'Items de cada venta (snapshot)';
 
-COMMENT ON VIEW v_products_complete IS 'Vista para homepage: 1 imagen por color';
-COMMENT ON VIEW v_variants_by_size IS 'Vista: Talle → Colores disponibles';
-COMMENT ON VIEW v_variant_images IS 'Imágenes de variante para carousel';
-COMMENT ON VIEW v_product_detail IS 'Vista completa para detalle de producto';
+COMMENT ON VIEW v_products_complete             IS 'Vista para homepage: 1 imagen por color';
+COMMENT ON VIEW v_variants_by_size              IS 'Vista: Talle → Colores disponibles';
+COMMENT ON VIEW v_variant_images                IS 'Imágenes de variante para carousel';
+
+-- ESTE NO LO EJECUTO PORQUE DIÓ ERROR
+COMMENT ON VIEW v_product_detail                IS 'Vista completa para detalle de producto';
 
 -- ----------------------------------------------------------------------------
 -- FIN DEL SCRIPT
 -- ----------------------------------------------------------------------------
+
+
+
+
+
+-- INSERTS DE PRUEBA PARA RELLENAR LA TABLA
+-- INSERT de productos combinando todas las categorías (1-5) con artículos (1-5)
+INSERT INTO products (name, short_desc, long_desc, base_price, id_category) VALUES
+-- Categoría 1
+('Art. 1 - Cat. 1', 'Descripción corta del Art. 1 - Cat. 1', 'Descripción larga del Artículo 1 en Categoría 1. Este es un producto de alta calidad diseñado para satisfacer todas tus necesidades.', 49.99, 1),
+('Art. 2 - Cat. 1', 'Descripción corta del Art. 2 - Cat. 1', 'Descripción larga del Artículo 2 en Categoría 1. Características innovadoras que mejoran tu experiencia diaria.', 79.99, 1),
+('Art. 3 - Cat. 1', 'Descripción corta del Art. 3 - Cat. 1', 'Descripción larga del Artículo 3 en Categoría 1. Diseño ergonómico y materiales premium para durabilidad.', 29.99, 1),
+('Art. 4 - Cat. 1', 'Descripción corta del Art. 4 - Cat. 1', 'Descripción larga del Artículo 4 en Categoría 1. Tecnología de vanguardia con garantía extendida.', 99.99, 1),
+('Art. 5 - Cat. 1', 'Descripción corta del Art. 5 - Cat. 1', 'Descripción larga del Artículo 5 en Categoría 1. Solución completa para profesionales exigentes.', 149.99, 1),
+
+-- Categoría 2
+('Art. 1 - Cat. 2', 'Descripción corta del Art. 1 - Cat. 2', 'Descripción larga del Artículo 1 en Categoría 2. Optimizado para máximo rendimiento en entornos exigentes.', 59.99, 2),
+('Art. 2 - Cat. 2', 'Descripción corta del Art. 2 - Cat. 2', 'Descripción larga del Artículo 2 en Categoría 2. Diseño compacto con funcionalidades avanzadas.', 89.99, 2),
+('Art. 3 - Cat. 2', 'Descripción corta del Art. 3 - Cat. 2', 'Descripción larga del Artículo 3 en Categoría 2. Versátil y adaptable a diferentes usos.', 39.99, 2),
+('Art. 4 - Cat. 2', 'Descripción corta del Art. 4 - Cat. 2', 'Descripción larga del Artículo 4 en Categoría 2. Sistema inteligente con conectividad total.', 119.99, 2),
+('Art. 5 - Cat. 2', 'Descripción corta del Art. 5 - Cat. 2', 'Descripción larga del Artículo 5 en Categoría 2. Producto flagship con todas las características premium.', 199.99, 2),
+
+-- Categoría 3
+('Art. 1 - Cat. 3', 'Descripción corta del Art. 1 - Cat. 3', 'Descripción larga del Artículo 1 en Categoría 3. Esencial para el día a día con diseño minimalista.', 44.99, 3),
+('Art. 2 - Cat. 3', 'Descripción corta del Art. 2 - Cat. 3', 'Descripción larga del Artículo 2 en Categoría 3. Combinación perfecta de estilo y funcionalidad.', 74.99, 3),
+('Art. 3 - Cat. 3', 'Descripción corta del Art. 3 - Cat. 3', 'Descripción larga del Artículo 3 en Categoría 3. Resistentes a condiciones extremas de uso.', 34.99, 3),
+('Art. 4 - Cat. 3', 'Descripción corta del Art. 4 - Cat. 3', 'Descripción larga del Artículo 4 en Categoría 3. Innovación tecnológica certificada.', 109.99, 3),
+('Art. 5 - Cat. 3', 'Descripción corta del Art. 5 - Cat. 3', 'Descripción larga del Artículo 5 en Categoría 3. Solución integral para necesidades especializadas.', 179.99, 3),
+
+-- Categoría 4
+('Art. 1 - Cat. 4', 'Descripción corta del Art. 1 - Cat. 4', 'Descripción larga del Artículo 1 en Categoría 4. Fabricado con materiales ecológicos y sostenibles.', 54.99, 4),
+('Art. 2 - Cat. 4', 'Descripción corta del Art. 2 - Cat. 4', 'Descripción larga del Artículo 2 en Categoría 4. Diseño modular para personalización total.', 84.99, 4),
+('Art. 3 - Cat. 4', 'Descripción corta del Art. 3 - Cat. 4', 'Descripción larga del Artículo 3 en Categoría 4. Portátil y fácil de almacenar.', 37.99, 4),
+('Art. 4 - Cat. 4', 'Descripción corta del Art. 4 - Cat. 4', 'Descripción larga del Artículo 4 en Categoría 4. Compatible con sistemas de tercera generación.', 129.99, 4),
+('Art. 5 - Cat. 4', 'Descripción corta del Art. 5 - Cat. 4', 'Descripción larga del Artículo 5 en Categoría 4. Incluye accesorios premium y manual detallado.', 219.99, 4),
+
+-- Categoría 5
+('Art. 1 - Cat. 5', 'Descripción corta del Art. 1 - Cat. 5', 'Descripción larga del Artículo 1 en Categoría 5. Perfecto para usuarios principiantes.', 39.99, 5),
+('Art. 2 - Cat. 5', 'Descripción corta del Art. 2 - Cat. 5', 'Descripción larga del Artículo 2 en Categoría 5. Balance ideal entre precio y calidad.', 69.99, 5),
+('Art. 3 - Cat. 5', 'Descripción corta del Art. 3 - Cat. 5', 'Descripción larga del Artículo 3 en Categoría 5. Mantenimiento mínimo y alta durabilidad.', 27.99, 5),
+('Art. 4 - Cat. 5', 'Descripción corta del Art. 4 - Cat. 5', 'Descripción larga del Artículo 4 en Categoría 5. Sistema automatizado con control remoto.', 89.99, 5),
+('Art. 5 - Cat. 5', 'Descripción corta del Art. 5 - Cat. 5', 'Descripción larga del Artículo 5 en Categoría 5. Edición limitada con certificado de autenticidad.', 159.99, 5);
+
+
+-- Insertar variantes para productos de calzado (categorías 3, 4)
+-- Los productos de categoría 3 (calzado hombre) usan talles 10-26 (id: 10-26)
+-- Los productos de categoría 4 (calzado mujer) usan talles 27-40 (id: 27-40)
+-- Los productos de categoría 5 (niños) usan talles 1-9 (id: 1-9)
+
+INSERT INTO product_variants (id_product, id_color, id_size, sku, price, stock, cod_status) VALUES
+-- Producto 1: Art. 1 - Cat. 1 (Supongamos que es calzado hombre - usar talles hombre)
+('30896883-a0e1-4779-80b4-be99eafd7375', 1, 15, 'ART1-CAT1-BLK-40', 89.99, 25, 'A'),  -- Negro, talle 40
+('30896883-a0e1-4779-80b4-be99eafd7375', 4, 16, 'ART1-CAT1-WHT-41', 89.99, 20, 'A'),  -- Blanco, talle 41
+('30896883-a0e1-4779-80b4-be99eafd7375', 8, 17, 'ART1-CAT1-BLU-42', 89.99, 18, 'A'),  -- Azul, talle 42
+('30896883-a0e1-4779-80b4-be99eafd7375', 6, 18, 'ART1-CAT1-BRN-43', 89.99, 15, 'A'),  -- Marrón, talle 43
+('30896883-a0e1-4779-80b4-be99eafd7375', 3, 19, 'ART1-CAT1-BGE-44', 89.99, 12, 'A'),  -- Beige, talle 44
+
+-- Producto 2: Art. 2 - Cat. 1
+('c88c3873-e65b-410d-95f2-290687891e4f', 4, 15, 'ART2-CAT1-WHT-40', 109.99, 30, 'A'),
+('c88c3873-e65b-410d-95f2-290687891e4f', 1, 16, 'ART2-CAT1-BLK-41', 109.99, 25, 'A'),
+('c88c3873-e65b-410d-95f2-290687891e4f', 10, 17, 'ART2-CAT1-GRN-42', 109.99, 22, 'A'),
+('c88c3873-e65b-410d-95f2-290687891e4f', 12, 18, 'ART2-CAT1-ORG-43', 109.99, 18, 'A'),
+
+-- Producto 3: Art. 3 - Cat. 1
+('1396ff9e-9cb4-4840-affa-0ec29d4e8131', 8, 16, 'ART3-CAT1-BLU-41', 79.99, 15, 'A'),
+('1396ff9e-9cb4-4840-affa-0ec29d4e8131', 1, 17, 'ART3-CAT1-BLK-42', 79.99, 20, 'A'),
+('1396ff9e-9cb4-4840-affa-0ec29d4e8131', 4, 18, 'ART3-CAT1-WHT-43', 79.99, 18, 'A'),
+('1396ff9e-9cb4-4840-affa-0ec29d4e8131', 6, 19, 'ART3-CAT1-BRN-44', 79.99, 12, 'A'),
+
+-- Producto 4: Art. 4 - Cat. 1
+('2d9438e6-ff1d-44d0-9042-85786d01885a', 1, 15, 'ART4-CAT1-BLK-40', 129.99, 8, 'A'),
+('2d9438e6-ff1d-44d0-9042-85786d01885a', 4, 16, 'ART4-CAT1-WHT-41', 129.99, 10, 'A'),
+('2d9438e6-ff1d-44d0-9042-85786d01885a', 8, 17, 'ART4-CAT1-BLU-42', 129.99, 6, 'A'),
+('2d9438e6-ff1d-44d0-9042-85786d01885a', 3, 18, 'ART4-CAT1-BGE-43', 129.99, 5, 'A'),
+
+-- Producto 5: Art. 5 - Cat. 1
+('a6c5f810-b40d-4dbd-a14f-1f3c7731467c', 4, 16, 'ART5-CAT1-WHT-41', 159.99, 5, 'A'),
+('a6c5f810-b40d-4dbd-a14f-1f3c7731467c', 1, 17, 'ART5-CAT1-BLK-42', 159.99, 7, 'A'),
+('a6c5f810-b40d-4dbd-a14f-1f3c7731467c', 8, 18, 'ART5-CAT1-BLU-43', 159.99, 4, 'A'),
+
+-- Producto 6: Art. 1 - Cat. 2 (Calzado mujer - talles 27-32, 38-40)
+('8d582c40-9223-4e9f-b549-8e2484616c63', 2, 27, 'ART1-CAT2-PNK-35', 94.99, 20, 'A'),   -- Rosa, talle 35 mujer
+('8d582c40-9223-4e9f-b549-8e2484616c63', 4, 28, 'ART1-CAT2-WHT-36', 94.99, 22, 'A'),   -- Blanco, talle 36
+('8d582c40-9223-4e9f-b549-8e2484616c63', 13, 29, 'ART1-CAT2-VLT-37', 94.99, 18, 'A'),  -- Violeta, talle 37
+('8d582c40-9223-4e9f-b549-8e2484616c63', 5, 30, 'ART1-CAT2-FUX-38', 94.99, 15, 'A'),   -- Fuxia, talle 38
+('8d582c40-9223-4e9f-b549-8e2484616c63', 14, 31, 'ART1-CAT2-LIL-39', 94.99, 12, 'A'),  -- Lila, talle 39
+
+-- Producto 7: Art. 2 - Cat. 2
+('c83b56de-fd30-434f-b332-69931f2415a0', 4, 28, 'ART2-CAT2-WHT-36', 114.99, 25, 'A'),
+('c83b56de-fd30-434f-b332-69931f2415a0', 1, 29, 'ART2-CAT2-BLK-37', 114.99, 20, 'A'),
+('c83b56de-fd30-434f-b332-69931f2415a0', 13, 30, 'ART2-CAT2-VLT-38', 114.99, 18, 'A'),
+('c83b56de-fd30-434f-b332-69931f2415a0', 2, 31, 'ART2-CAT2-PNK-39', 114.99, 15, 'A'),
+
+-- Producto 8: Art. 3 - Cat. 2
+('5877b3a3-216d-4ec5-8981-30d6146e1c68', 3, 29, 'ART3-CAT2-BGE-37', 84.99, 18, 'A'),
+('5877b3a3-216d-4ec5-8981-30d6146e1c68', 4, 30, 'ART3-CAT2-WHT-38', 84.99, 22, 'A'),
+('5877b3a3-216d-4ec5-8981-30d6146e1c68', 8, 31, 'ART3-CAT2-BLU-39', 84.99, 20, 'A'),
+('5877b3a3-216d-4ec5-8981-30d6146e1c68', 1, 32, 'ART3-CAT2-BLK-40', 84.99, 16, 'A'),
+
+-- Producto 9: Art. 4 - Cat. 2
+('8e2ca035-9a77-4e7b-ac52-65feead35813', 4, 28, 'ART4-CAT2-WHT-36', 134.99, 10, 'A'),
+('8e2ca035-9a77-4e7b-ac52-65feead35813', 13, 29, 'ART4-CAT2-VLT-37', 134.99, 8, 'A'),
+('8e2ca035-9a77-4e7b-ac52-65feead35813', 5, 30, 'ART4-CAT2-FUX-38', 134.99, 6, 'A'),
+('8e2ca035-9a77-4e7b-ac52-65feead35813', 2, 31, 'ART4-CAT2-PNK-39', 134.99, 7, 'A'),
+
+-- Producto 10: Art. 5 - Cat. 2
+('fac89514-ea0e-4999-9ef9-c797f8d94d7e', 13, 29, 'ART5-CAT2-VLT-37', 164.99, 6, 'A'),
+('fac89514-ea0e-4999-9ef9-c797f8d94d7e', 4, 30, 'ART5-CAT2-WHT-38', 164.99, 8, 'A'),
+('fac89514-ea0e-4999-9ef9-c797f8d94d7e', 1, 31, 'ART5-CAT2-BLK-39', 164.99, 5, 'A'),
+
+-- Producto 11: Art. 1 - Cat. 3 (Calzado hombre - talles combinados 21-26)
+('bc899056-face-4905-bec9-e627d96e1251', 1, 21, 'ART1-CAT3-BLK-35/36', 99.99, 20, 'A'),   -- Negro, talle 35/36
+('bc899056-face-4905-bec9-e627d96e1251', 4, 22, 'ART1-CAT3-WHT-37/38', 99.99, 22, 'A'),   -- Blanco, talle 37/38
+('bc899056-face-4905-bec9-e627d96e1251', 8, 23, 'ART1-CAT3-BLU-39/40', 99.99, 18, 'A'),   -- Azul, talle 39/40
+('bc899056-face-4905-bec9-e627d96e1251', 6, 24, 'ART1-CAT3-BRN-41/42', 99.99, 15, 'A'),   -- Marrón, talle 41/42
+('bc899056-face-4905-bec9-e627d96e1251', 3, 25, 'ART1-CAT3-BGE-43/44', 99.99, 12, 'A'),   -- Beige, talle 43/44
+
+-- Producto 12: Art. 2 - Cat. 3
+('d18b8ebd-888e-4433-b81f-bdbd597a4674', 4, 21, 'ART2-CAT3-WHT-35/36', 119.99, 25, 'A'),
+('d18b8ebd-888e-4433-b81f-bdbd597a4674', 1, 22, 'ART2-CAT3-BLK-37/38', 119.99, 20, 'A'),
+('d18b8ebd-888e-4433-b81f-bdbd597a4674', 10, 23, 'ART2-CAT3-GRN-39/40', 119.99, 18, 'A'),
+('d18b8ebd-888e-4433-b81f-bdbd597a4674', 12, 24, 'ART2-CAT3-ORG-41/42', 119.99, 15, 'A'),
+
+-- Producto 13: Art. 3 - Cat. 3
+('579f4b25-ad07-4d9f-a584-f7f35377a96e', 8, 22, 'ART3-CAT3-BLU-37/38', 89.99, 18, 'A'),
+('579f4b25-ad07-4d9f-a584-f7f35377a96e', 1, 23, 'ART3-CAT3-BLK-39/40', 89.99, 22, 'A'),
+('579f4b25-ad07-4d9f-a584-f7f35377a96e', 4, 24, 'ART3-CAT3-WHT-41/42', 89.99, 20, 'A'),
+('579f4b25-ad07-4d9f-a584-f7f35377a96e', 6, 25, 'ART3-CAT3-BRN-43/44', 89.99, 16, 'A'),
+
+-- Producto 14: Art. 4 - Cat. 3
+('7c052b5e-e3ba-4a14-a7c4-fb6c052f09e9', 1, 21, 'ART4-CAT3-BLK-35/36', 139.99, 10, 'A'),
+('7c052b5e-e3ba-4a14-a7c4-fb6c052f09e9', 4, 22, 'ART4-CAT3-WHT-37/38', 139.99, 8, 'A'),
+('7c052b5e-e3ba-4a14-a7c4-fb6c052f09e9', 8, 23, 'ART4-CAT3-BLU-39/40', 139.99, 6, 'A'),
+('7c052b5e-e3ba-4a14-a7c4-fb6c052f09e9', 3, 24, 'ART4-CAT3-BGE-41/42', 139.99, 7, 'A'),
+
+-- Producto 15: Art. 5 - Cat. 3
+('d89b73f3-e972-4281-be66-ec4fbe5588df', 4, 22, 'ART5-CAT3-WHT-37/38', 169.99, 6, 'A'),
+('d89b73f3-e972-4281-be66-ec4fbe5588df', 1, 23, 'ART5-CAT3-BLK-39/40', 169.99, 8, 'A'),
+('d89b73f3-e972-4281-be66-ec4fbe5588df', 8, 24, 'ART5-CAT3-BLU-41/42', 169.99, 5, 'A'),
+
+-- Producto 16: Art. 1 - Cat. 4 (Calzado mujer - talles combinados 38-40)
+('22affd5d-ffa3-4e95-9083-1ad56234c47b', 2, 38, 'ART1-CAT4-PNK-35/36', 104.99, 20, 'A'),   -- Rosa, talle 35/36 mujer
+('22affd5d-ffa3-4e95-9083-1ad56234c47b', 4, 39, 'ART1-CAT4-WHT-37/38', 104.99, 22, 'A'),   -- Blanco, talle 37/38
+('22affd5d-ffa3-4e95-9083-1ad56234c47b', 13, 40, 'ART1-CAT4-VLT-39/40', 104.99, 18, 'A'),  -- Violeta, talle 39/40
+('22affd5d-ffa3-4e95-9083-1ad56234c47b', 5, 38, 'ART1-CAT4-FUX-35/36', 104.99, 15, 'A'),   -- Fuxia, talle 35/36
+('22affd5d-ffa3-4e95-9083-1ad56234c47b', 14, 39, 'ART1-CAT4-LIL-37/38', 104.99, 12, 'A'),  -- Lila, talle 37/38
+
+-- Producto 17: Art. 2 - Cat. 4
+('5e7644ae-31e8-450c-b90b-7da3efe29ec8', 4, 38, 'ART2-CAT4-WHT-35/36', 124.99, 25, 'A'),
+('5e7644ae-31e8-450c-b90b-7da3efe29ec8', 1, 39, 'ART2-CAT4-BLK-37/38', 124.99, 20, 'A'),
+('5e7644ae-31e8-450c-b90b-7da3efe29ec8', 13, 40, 'ART2-CAT4-VLT-39/40', 124.99, 18, 'A'),
+('5e7644ae-31e8-450c-b90b-7da3efe29ec8', 2, 38, 'ART2-CAT4-PNK-35/36', 124.99, 15, 'A'),
+
+-- Producto 18: Art. 3 - Cat. 4
+('699e117e-7c37-4ef6-aa92-665aae6270d4', 3, 39, 'ART3-CAT4-BGE-37/38', 94.99, 18, 'A'),
+('699e117e-7c37-4ef6-aa92-665aae6270d4', 4, 40, 'ART3-CAT4-WHT-39/40', 94.99, 22, 'A'),
+('699e117e-7c37-4ef6-aa92-665aae6270d4', 8, 38, 'ART3-CAT4-BLU-35/36', 94.99, 20, 'A'),
+('699e117e-7c37-4ef6-aa92-665aae6270d4', 1, 39, 'ART3-CAT4-BLK-37/38', 94.99, 16, 'A'),
+
+-- Producto 19: Art. 4 - Cat. 4
+('fc98c637-5f36-447e-a1a5-90123709ab48', 4, 38, 'ART4-CAT4-WHT-35/36', 144.99, 10, 'A'),
+('fc98c637-5f36-447e-a1a5-90123709ab48', 13, 39, 'ART4-CAT4-VLT-37/38', 144.99, 8, 'A'),
+('fc98c637-5f36-447e-a1a5-90123709ab48', 5, 40, 'ART4-CAT4-FUX-39/40', 144.99, 6, 'A'),
+('fc98c637-5f36-447e-a1a5-90123709ab48', 2, 38, 'ART4-CAT4-PNK-35/36', 144.99, 7, 'A'),
+
+-- Producto 20: Art. 5 - Cat. 4
+('1b8190a2-d12b-4909-a628-5e81b1e7fbab', 13, 39, 'ART5-CAT4-VLT-37/38', 174.99, 6, 'A'),
+('1b8190a2-d12b-4909-a628-5e81b1e7fbab', 4, 40, 'ART5-CAT4-WHT-39/40', 174.99, 8, 'A'),
+('1b8190a2-d12b-4909-a628-5e81b1e7fbab', 1, 38, 'ART5-CAT4-BLK-35/36', 174.99, 5, 'A'),
+
+-- Producto 21: Art. 1 - Cat. 5 (Niños - talles 1-9)
+('b720e6e7-fb46-4a57-9800-d1eb32d96e77', 8, 1, 'ART1-CAT5-BLU-18', 64.99, 30, 'A'),   -- Azul, talle 18 niños
+('b720e6e7-fb46-4a57-9800-d1eb32d96e77', 4, 2, 'ART1-CAT5-WHT-19', 64.99, 35, 'A'),   -- Blanco, talle 19
+('b720e6e7-fb46-4a57-9800-d1eb32d96e77', 10, 3, 'ART1-CAT5-GRN-20', 64.99, 28, 'A'),   -- Verde, talle 20
+('b720e6e7-fb46-4a57-9800-d1eb32d96e77', 11, 4, 'ART1-CAT5-YLW-21', 64.99, 25, 'A'),   -- Amarillo, talle 21
+('b720e6e7-fb46-4a57-9800-d1eb32d96e77', 12, 5, 'ART1-CAT5-ORG-22', 64.99, 22, 'A'),   -- Naranja, talle 22
+
+-- Producto 22: Art. 2 - Cat. 5
+('bf2e9c93-5753-4968-8382-546cf6894f38', 4, 2, 'ART2-CAT5-WHT-19', 84.99, 40, 'A'),
+('bf2e9c93-5753-4968-8382-546cf6894f38', 8, 3, 'ART2-CAT5-BLU-20', 84.99, 35, 'A'),
+('bf2e9c93-5753-4968-8382-546cf6894f38', 10, 4, 'ART2-CAT5-GRN-21', 84.99, 30, 'A'),
+('bf2e9c93-5753-4968-8382-546cf6894f38', 11, 5, 'ART2-CAT5-YLW-22', 84.99, 28, 'A'),
+
+-- Producto 23: Art. 3 - Cat. 5
+('0dd189e0-e206-460e-987c-cc3479495787', 8, 3, 'ART3-CAT5-BLU-20', 54.99, 30, 'A'),
+('0dd189e0-e206-460e-987c-cc3479495787', 4, 4, 'ART3-CAT5-WHT-21', 54.99, 38, 'A'),
+('0dd189e0-e206-460e-987c-cc3479495787', 10, 5, 'ART3-CAT5-GRN-22', 54.99, 32, 'A'),
+('0dd189e0-e206-460e-987c-cc3479495787', 11, 6, 'ART3-CAT5-YLW-23', 54.99, 25, 'A'),
+
+-- Producto 24: Art. 4 - Cat. 5
+('f4c90390-6cec-4ac1-9ab4-ae2183df22ea', 4, 4, 'ART4-CAT5-WHT-21', 104.99, 20, 'A'),
+('f4c90390-6cec-4ac1-9ab4-ae2183df22ea', 8, 5, 'ART4-CAT5-BLU-22', 104.99, 18, 'A'),
+('f4c90390-6cec-4ac1-9ab4-ae2183df22ea', 10, 6, 'ART4-CAT5-GRN-23', 104.99, 15, 'A'),
+('f4c90390-6cec-4ac1-9ab4-ae2183df22ea', 11, 7, 'ART4-CAT5-YLW-24', 104.99, 12, 'A'),
+
+-- Producto 25: Art. 5 - Cat. 5
+('4cbee8dc-4abd-4547-89e2-c3ff3dd251ff', 8, 5, 'ART5-CAT5-BLU-22', 134.99, 15, 'A'),
+('4cbee8dc-4abd-4547-89e2-c3ff3dd251ff', 4, 6, 'ART5-CAT5-WHT-23', 134.99, 18, 'A'),
+('4cbee8dc-4abd-4547-89e2-c3ff3dd251ff', 10, 7, 'ART5-CAT5-GRN-24', 134.99, 12, 'A'),
+('4cbee8dc-4abd-4547-89e2-c3ff3dd251ff', 11, 8, 'ART5-CAT5-YLW-25', 134.99, 10, 'A');
+
+
+
+
+-- Insertar 5 imágenes para cada variante con URLs aleatorias
+INSERT INTO variant_images (id_variant, image_url, order_position, cod_status) VALUES
+-- Variante 1
+('8f298e68-18f6-4ee5-861f-8ea6478d1f1e', '/assets/images/productsContainer/children/product2_img1.jpg', 1, 'A'),
+('8f298e68-18f6-4ee5-861f-8ea6478d1f1e', '/assets/images/productsContainer/children/product2_img2.jpg', 2, 'A'),
+('8f298e68-18f6-4ee5-861f-8ea6478d1f1e', '/assets/images/productsContainer/children/product2_img3.jpg', 3, 'A'),
+('8f298e68-18f6-4ee5-861f-8ea6478d1f1e', '/assets/images/productsContainer/children/product2_img1.jpg', 4, 'A'),
+('8f298e68-18f6-4ee5-861f-8ea6478d1f1e', '/assets/images/productsContainer/children/product2_img2.jpg', 5, 'A'),
+
+-- Variante 2
+('daf0c7d1-4cae-4b1b-b7a4-35808a753016', '/assets/images/productsContainer/children/product2_img3.jpg', 1, 'A'),
+('daf0c7d1-4cae-4b1b-b7a4-35808a753016', '/assets/images/productsContainer/children/product2_img1.jpg', 2, 'A'),
+('daf0c7d1-4cae-4b1b-b7a4-35808a753016', '/assets/images/productsContainer/children/product2_img2.jpg', 3, 'A'),
+('daf0c7d1-4cae-4b1b-b7a4-35808a753016', '/assets/images/productsContainer/children/product2_img3.jpg', 4, 'A'),
+('daf0c7d1-4cae-4b1b-b7a4-35808a753016', '/assets/images/productsContainer/children/product2_img1.jpg', 5, 'A'),
+
+-- Variante 3
+('d45100fc-c6b8-45c3-a1f5-97145af572f2', '/assets/images/productsContainer/children/product2_img2.jpg', 1, 'A'),
+('d45100fc-c6b8-45c3-a1f5-97145af572f2', '/assets/images/productsContainer/children/product2_img3.jpg', 2, 'A'),
+('d45100fc-c6b8-45c3-a1f5-97145af572f2', '/assets/images/productsContainer/children/product2_img1.jpg', 3, 'A'),
+('d45100fc-c6b8-45c3-a1f5-97145af572f2', '/assets/images/productsContainer/children/product2_img2.jpg', 4, 'A'),
+('d45100fc-c6b8-45c3-a1f5-97145af572f2', '/assets/images/productsContainer/children/product2_img3.jpg', 5, 'A'),
+
+-- Variante 4
+('70291369-3a95-4db4-9275-0212a04c74c8', '/assets/images/productsContainer/children/product2_img1.jpg', 1, 'A'),
+('70291369-3a95-4db4-9275-0212a04c74c8', '/assets/images/productsContainer/children/product2_img2.jpg', 2, 'A'),
+('70291369-3a95-4db4-9275-0212a04c74c8', '/assets/images/productsContainer/children/product2_img3.jpg', 3, 'A'),
+('70291369-3a95-4db4-9275-0212a04c74c8', '/assets/images/productsContainer/children/product2_img1.jpg', 4, 'A'),
+('70291369-3a95-4db4-9275-0212a04c74c8', '/assets/images/productsContainer/children/product2_img2.jpg', 5, 'A'),
+
+-- Variante 5
+('7fa5ee73-6bb2-48e5-88eb-c6a8267b6fe1', '/assets/images/productsContainer/children/product2_img3.jpg', 1, 'A'),
+('7fa5ee73-6bb2-48e5-88eb-c6a8267b6fe1', '/assets/images/productsContainer/children/product2_img1.jpg', 2, 'A'),
+('7fa5ee73-6bb2-48e5-88eb-c6a8267b6fe1', '/assets/images/productsContainer/children/product2_img2.jpg', 3, 'A'),
+('7fa5ee73-6bb2-48e5-88eb-c6a8267b6fe1', '/assets/images/productsContainer/children/product2_img3.jpg', 4, 'A'),
+('7fa5ee73-6bb2-48e5-88eb-c6a8267b6fe1', '/assets/images/productsContainer/children/product2_img1.jpg', 5, 'A'),
+
+-- Variante 6
+('f20b7e36-d9dc-414f-9483-ba4deb228ed2', '/assets/images/productsContainer/children/product2_img2.jpg', 1, 'A'),
+('f20b7e36-d9dc-414f-9483-ba4deb228ed2', '/assets/images/productsContainer/children/product2_img3.jpg', 2, 'A'),
+('f20b7e36-d9dc-414f-9483-ba4deb228ed2', '/assets/images/productsContainer/children/product2_img1.jpg', 3, 'A'),
+('f20b7e36-d9dc-414f-9483-ba4deb228ed2', '/assets/images/productsContainer/children/product2_img2.jpg', 4, 'A'),
+('f20b7e36-d9dc-414f-9483-ba4deb228ed2', '/assets/images/productsContainer/children/product2_img3.jpg', 5, 'A'),
+
+-- Variante 7
+('238f21bf-6cb7-41bb-b1f2-8b44a0bf745d', '/assets/images/productsContainer/children/product2_img1.jpg', 1, 'A'),
+('238f21bf-6cb7-41bb-b1f2-8b44a0bf745d', '/assets/images/productsContainer/children/product2_img2.jpg', 2, 'A'),
+('238f21bf-6cb7-41bb-b1f2-8b44a0bf745d', '/assets/images/productsContainer/children/product2_img3.jpg', 3, 'A'),
+('238f21bf-6cb7-41bb-b1f2-8b44a0bf745d', '/assets/images/productsContainer/children/product2_img1.jpg', 4, 'A'),
+('238f21bf-6cb7-41bb-b1f2-8b44a0bf745d', '/assets/images/productsContainer/children/product2_img2.jpg', 5, 'A'),
+
+-- Variante 8
+('aabe9745-727b-4afa-8f2d-6bed67b7f095', '/assets/images/productsContainer/children/product2_img3.jpg', 1, 'A'),
+('aabe9745-727b-4afa-8f2d-6bed67b7f095', '/assets/images/productsContainer/children/product2_img1.jpg', 2, 'A'),
+('aabe9745-727b-4afa-8f2d-6bed67b7f095', '/assets/images/productsContainer/children/product2_img2.jpg', 3, 'A'),
+('aabe9745-727b-4afa-8f2d-6bed67b7f095', '/assets/images/productsContainer/children/product2_img3.jpg', 4, 'A'),
+('aabe9745-727b-4afa-8f2d-6bed67b7f095', '/assets/images/productsContainer/children/product2_img1.jpg', 5, 'A'),
+
+-- Variante 9
+('b94546c4-0b13-487c-8da3-be69dad28076', '/assets/images/productsContainer/children/product2_img2.jpg', 1, 'A'),
+('b94546c4-0b13-487c-8da3-be69dad28076', '/assets/images/productsContainer/children/product2_img3.jpg', 2, 'A'),
+('b94546c4-0b13-487c-8da3-be69dad28076', '/assets/images/productsContainer/children/product2_img1.jpg', 3, 'A'),
+('b94546c4-0b13-487c-8da3-be69dad28076', '/assets/images/productsContainer/children/product2_img2.jpg', 4, 'A'),
+('b94546c4-0b13-487c-8da3-be69dad28076', '/assets/images/productsContainer/children/product2_img3.jpg', 5, 'A'),
+
+-- Variante 10
+('98bc9773-15b4-468c-96ee-702809e15393', '/assets/images/productsContainer/children/product2_img1.jpg', 1, 'A'),
+('98bc9773-15b4-468c-96ee-702809e15393', '/assets/images/productsContainer/children/product2_img2.jpg', 2, 'A'),
+('98bc9773-15b4-468c-96ee-702809e15393', '/assets/images/productsContainer/children/product2_img3.jpg', 3, 'A'),
+('98bc9773-15b4-468c-96ee-702809e15393', '/assets/images/productsContainer/children/product2_img1.jpg', 4, 'A'),
+('98bc9773-15b4-468c-96ee-702809e15393', '/assets/images/productsContainer/children/product2_img2.jpg', 5, 'A');
