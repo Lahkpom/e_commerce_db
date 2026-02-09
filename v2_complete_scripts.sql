@@ -501,6 +501,7 @@ SELECT
     p.long_desc,
     p.base_price,
     p.id_category,
+    c.name          AS cat_name,
     c.description   AS category,
     p.cod_status    AS status,
     
@@ -563,7 +564,7 @@ FROM products p
 JOIN categories             c   ON p.id_category    = c.id_category
 LEFT JOIN product_variants  pv  ON p.id_product     = pv.id_product AND pv.cod_status = 'A'
 WHERE p.cod_status = 'A'
-GROUP BY p.id_product, c.description;
+GROUP BY p.id_product, c.description, c.name;
 
 -- Vista organizada: Producto → Talles → Colores
 CREATE OR REPLACE VIEW v_variants_by_size 
