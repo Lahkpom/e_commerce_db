@@ -637,71 +637,49 @@ JOIN sizes              s   ON pv.id_size       = s.id_size
 WHERE vi.cod_status = 'A'
 ORDER BY vi.id_variant, vi.order_position;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- ME DIÓ UN ERROR
-
-
 -- Vista de detalle de producto
-CREATE OR REPLACE VIEW v_product_detail WITH (security_invoker = true) AS
+CREATE OR REPLACE VIEW v_product_detail
+WITH (security_invoker = true)
+AS
 SELECT 
     p.id_product,
-    p.name AS product_name,
+    p.name                                          AS product_name,
     p.short_desc,
     p.long_desc,
     p.base_price,
-    cat.description AS category,
-    p.cod_status AS status,
-    
-    COUNT(DISTINCT pv.id_variant) AS total_variants,
-    COUNT(DISTINCT pv.id_size) AS total_sizes,
-    COUNT(DISTINCT pv.id_color) AS total_colors,
-    COALESCE(SUM(pv.stock), 0) AS total_stock,
-    COALESCE(MIN(pv.price), p.base_price) AS min_price,
-    COALESCE(MAX(pv.price), p.base_price) AS max_price,
-    
-    -- Talles disponibles
+    cat.description                                 AS category,
+    p.cod_status                                    AS status,
+
+    COUNT(DISTINCT pv.id_variant)                   AS total_variants,
+    COUNT(DISTINCT pv.id_size)                      AS total_sizes,
+    COUNT(DISTINCT pv.id_color)                     AS total_colors,
+    COALESCE(SUM(pv.stock), 0)                      AS total_stock,
+    COALESCE(MIN(pv.price), p.base_price)           AS min_price,
+    COALESCE(MAX(pv.price), p.base_price)           AS max_price,
+
+    -- ✅ Usando jsonb (soporta DISTINCT) en lugar de json
     COALESCE(
-        json_agg(DISTINCT 
-            json_build_object(
-                'id_size', s.id_size,
-                'size', s.size,
-                'description', s.description,
-                'sort_order', s.sort_order
-            )
-            ORDER BY json_build_object(
-                'id_size', s.id_size,
-                'size', s.size,
-                'description', s.description,
-                'sort_order', s.sort_order
-            )->>'sort_order'
-        ) FILTER (WHERE s.id_size IS NOT NULL),
-        '[]'::json
+        (
+            SELECT jsonb_agg(size_data ORDER BY (size_data->>'sort_order')::int)
+            FROM (
+                SELECT DISTINCT jsonb_build_object(
+                    'id_size',      s2.id_size,
+                    'size',         s2.size,
+                    'description',  s2.description,
+                    'sort_order',   s2.sort_order
+                ) AS size_data
+                FROM product_variants pv2
+                JOIN sizes s2 ON pv2.id_size = s2.id_size
+                WHERE pv2.id_product = p.id_product
+                  AND pv2.cod_status = 'A'
+            ) sub
+        ),
+        '[]'::jsonb
     ) AS available_sizes,
-    
+
     p.created_at,
     p.updated_at
-    
+
 FROM products p
 JOIN categories cat ON p.id_category = cat.id_category
 LEFT JOIN product_variants pv ON p.id_product = pv.id_product
@@ -709,25 +687,6 @@ LEFT JOIN product_variants pv ON p.id_product = pv.id_product
 LEFT JOIN sizes s ON pv.id_size = s.id_size
 WHERE p.cod_status = 'A'
 GROUP BY p.id_product, cat.description;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 -- Función para obtener variante con imágenes
 CREATE OR REPLACE FUNCTION get_variant_with_images(p_id_variant UUID)
