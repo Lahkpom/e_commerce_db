@@ -567,46 +567,22 @@ WHERE p.cod_status = 'A'
 GROUP BY p.id_product, c.description, c.name;
 
 -- Vista organizada: Producto → Talles → Colores
-CREATE OR REPLACE VIEW v_variants_by_size 
-WITH (security_invoker = true) 
+CREATE OR REPLACE VIEW v_variants_by_size
+WITH (security_invoker = true)
 AS
-SELECT 
+SELECT DISTINCT
     p.id_product,
-    p.name          AS product_name,
+    p.name        AS product_name,
     s.id_size,
     s.size,
     s.sort_order,
-    s.description   AS size_description,
-    
-    -- Colores disponibles en este talle
-    json_agg(
-        json_build_object(
-            'id_variant'        , pv.id_variant,
-            'id_color'          , c.id_color,
-            'color_name'        , c.name,
-            'color_description' , c.description,
-            'hex_code'          , c.hex_code,
-            'stock'             , pv.stock,
-            'price'             , pv.price,
-            'sku'               , pv.sku,
-            'main_image'        , (
-                SELECT image_url
-                FROM variant_images vi
-                WHERE vi.id_variant = pv.id_variant
-                  AND vi.cod_status = 'A'
-                ORDER BY vi.order_position
-                LIMIT 1
-            )
-        )
-        ORDER BY c.id_color
-    ) AS available_colors
-    
-FROM products p
-JOIN product_variants   pv  ON p.id_product = pv.id_product
-JOIN sizes              s   ON pv.id_size   = s.id_size
-JOIN colors             c   ON pv.id_color  = c.id_color
+    s.description AS size_description
+
+FROM products        p
+JOIN product_variants pv ON p.id_product = pv.id_product
+JOIN sizes            s  ON pv.id_size   = s.id_size
 WHERE pv.cod_status = 'A'
-GROUP BY p.id_product, p.name, s.id_size, s.size, s.sort_order, s.description
+  AND p.cod_status  = 'A'
 ORDER BY p.id_product, s.sort_order;
 
 -- Vista de imágenes de variante específica
@@ -638,55 +614,34 @@ WHERE vi.cod_status = 'A'
 ORDER BY vi.id_variant, vi.order_position;
 
 -- Vista de detalle de producto
-CREATE OR REPLACE VIEW v_product_detail
-WITH (security_invoker = true)
-AS
-SELECT 
-    p.id_product,
-    p.name                                          AS product_name,
-    p.short_desc,
-    p.long_desc,
-    p.base_price,
-    cat.description                                 AS category,
-    p.cod_status                                    AS status,
+    CREATE OR REPLACE VIEW v_product_detail
+    WITH (security_invoker = true)
+    AS
+    SELECT
+        p.id_product,
+        p.name                                AS product_name,
+        p.short_desc,
+        p.long_desc,
+        p.base_price,
+        cat.description                       AS category,
+        p.cod_status                          AS status,
 
-    COUNT(DISTINCT pv.id_variant)                   AS total_variants,
-    COUNT(DISTINCT pv.id_size)                      AS total_sizes,
-    COUNT(DISTINCT pv.id_color)                     AS total_colors,
-    COALESCE(SUM(pv.stock), 0)                      AS total_stock,
-    COALESCE(MIN(pv.price), p.base_price)           AS min_price,
-    COALESCE(MAX(pv.price), p.base_price)           AS max_price,
+        COUNT(DISTINCT pv.id_variant)         AS total_variants,
+        COUNT(DISTINCT pv.id_size)            AS total_sizes,
+        COUNT(DISTINCT pv.id_color)           AS total_colors,
+        COALESCE(SUM(pv.stock), 0)            AS total_stock,
+        COALESCE(MIN(pv.price), p.base_price) AS min_price,
+        COALESCE(MAX(pv.price), p.base_price) AS max_price,
 
-    -- ✅ Usando jsonb (soporta DISTINCT) en lugar de json
-    COALESCE(
-        (
-            SELECT jsonb_agg(size_data ORDER BY (size_data->>'sort_order')::int)
-            FROM (
-                SELECT DISTINCT jsonb_build_object(
-                    'id_size',      s2.id_size,
-                    'size',         s2.size,
-                    'description',  s2.description,
-                    'sort_order',   s2.sort_order
-                ) AS size_data
-                FROM product_variants pv2
-                JOIN sizes s2 ON pv2.id_size = s2.id_size
-                WHERE pv2.id_product = p.id_product
-                  AND pv2.cod_status = 'A'
-            ) sub
-        ),
-        '[]'::jsonb
-    ) AS available_sizes,
+        p.created_at,
+        p.updated_at
 
-    p.created_at,
-    p.updated_at
-
-FROM products p
-JOIN categories cat ON p.id_category = cat.id_category
-LEFT JOIN product_variants pv ON p.id_product = pv.id_product
-    AND pv.cod_status = 'A'
-LEFT JOIN sizes s ON pv.id_size = s.id_size
-WHERE p.cod_status = 'A'
-GROUP BY p.id_product, cat.description;
+    FROM products   p
+    JOIN categories cat ON p.id_category = cat.id_category
+    LEFT JOIN product_variants pv ON p.id_product = pv.id_product
+        AND pv.cod_status = 'A'
+    WHERE p.cod_status = 'A'
+    GROUP BY p.id_product, cat.description;
 
 -- Función para obtener variante con imágenes
 CREATE OR REPLACE FUNCTION get_variant_with_images(p_id_variant UUID)
