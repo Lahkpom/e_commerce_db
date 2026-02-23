@@ -230,6 +230,7 @@ CREATE TABLE variant_images (
 -- Tabla de ventas
 CREATE TABLE sales (
     id_sale             UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_user             UUID            NULL REFERENCES auth.users(id),
     total               DECIMAL(10, 2)  NOT NULL CHECK (total >= 0),
     date_completed      TIMESTAMP       NULL,
     customer_name       VARCHAR(255)    NOT NULL,
@@ -475,7 +476,7 @@ CREATE POLICY "Public read active images"   ON variant_images   FOR SELECT USING
 -- Políticas para sales
 CREATE POLICY "Public insert sales"         ON sales            FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Public read sales"           ON sales            FOR SELECT USING (true);
+-- CREATE POLICY "Public read sales"           ON sales            FOR SELECT USING (true);
 
 -- Políticas para sale_items
 CREATE POLICY "Public insert sale_items"    ON sale_items       FOR INSERT WITH CHECK (true);
