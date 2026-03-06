@@ -4,12 +4,13 @@
 -----------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------
 -- 1. Crear el usuario en auth.users usando la función de Supabase
-SELECT supabase_auth.create_user(
-    uid := gen_random_uuid(),
-    email := 'blackanvilsoftworks@gmail.com',
-    password := '12345678',
-    email_confirm := true  -- Esto evita que tenga que confirmar el email
-);
+--SELECT supabase_auth.create_user(
+--    uid := gen_random_uuid(),
+--    email := 'blackanvilsoftworks@gmail.com',
+--    password := '12345678',
+--    email_confirm := true  -- Esto evita que tenga que confirmar el email
+--);
+-- Crear con email y password desde authentication -> users -> add user -> create user
 
 -- 2. Obtener el ID del usuario recién creado (para usarlo en el perfil)
 -- Nota: Guarda este ID, lo necesitarás para verificar
