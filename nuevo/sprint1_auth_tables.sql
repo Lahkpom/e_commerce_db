@@ -172,6 +172,7 @@ CREATE POLICY "Users can view own profile"
 
 -- Los usuarios pueden actualizar su propio perfil (nombre, teléfono)
 -- pero NO pueden cambiar su rol
+-- ELIMINADA TEMPORALMENTE
 CREATE POLICY "Users can update own profile"
     ON user_profiles
     FOR UPDATE
@@ -185,6 +186,7 @@ CREATE POLICY "Users can update own profile"
         )  -- No puede cambiar su rol
     );
 
+-- ELIMINADA TEMPORALMENTE
 -- Los admins pueden ver todos los perfiles
 CREATE POLICY "Admins can view all profiles"
     ON user_profiles
