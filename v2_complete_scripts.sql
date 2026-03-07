@@ -81,6 +81,15 @@ CREATE TABLE colors (
     updated_at  TIMESTAMP    NULL
 );
 
+CREATE TABLE roles (
+    id_role     SERIAL      PRIMARY KEY,
+    name        VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT        NOT NULL,
+    cod_status  VARCHAR(2)  NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
+    created_at  TIMESTAMP   NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP   NULL
+);
+
 -- ----------------------------------------------------------------------------
 -- 2. INSERTAR DATOS INICIALES EN TABLAS PARAMÉTRICAS
 -- ----------------------------------------------------------------------------
@@ -181,6 +190,12 @@ INSERT INTO colors (name, description, hex_code) VALUES
     ('violet'       , 'Violeta' , '#EE82EE'),
     ('lilac'        , 'Lila'    , '#C8A2C8');
 
+INSERT INTO roles (name, description) VALUES
+    ('customer'     , 'Cliente regular que puede comprar productos y ver su historial de compras.'),
+    ('wholesaler'   , 'Cliente mayorista con descuentos especiales. Solo puede ser creado por admins.'),
+    ('admin'        , 'Administrador que puede gestionar productos, ventas y crear usuarios mayoristas. Solo puede ser creado por superadmins.'),
+    ('superadmin'   , 'Super administrador con acceso total al sistema. Puede crear otros admins y gestionar todos los aspectos del ecommerce.');
+
 -- ----------------------------------------------------------------------------
 -- 3. TABLAS PRINCIPALES
 -- ----------------------------------------------------------------------------
@@ -262,6 +277,18 @@ CREATE TABLE sale_items (
     created_at      TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
+-- Tabla de perfiles de usuario (extensión de auth.users)
+CREATE TABLE user_profiles (
+    id              UUID            PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    full_name       VARCHAR(255)    NOT NULL,
+    phone           VARCHAR(50)     NULL,
+    company_name    VARCHAR(255)    NULL,  -- Solo para mayoristas
+    id_role         INTEGER         NOT NULL REFERENCES roles(id_role) DEFAULT 1, -- Default: customer
+    cod_status      VARCHAR(2)      NOT NULL REFERENCES status(cod_status) DEFAULT 'A',
+    created_at      TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP       NULL
+);
+
 -- ----------------------------------------------------------------------------
 -- 4. ÍNDICES PARA MEJORAR PERFORMANCE
 -- ----------------------------------------------------------------------------
@@ -288,9 +315,57 @@ CREATE INDEX idx_sales_mp_payment_id    ON sales(mp_payment_id);
 CREATE INDEX idx_sale_items_sale        ON sale_items(id_sale);
 CREATE INDEX idx_sale_items_variant     ON sale_items(id_variant);
 
+CREATE INDEX idx_roles_status           ON roles(cod_status);
+
+CREATE INDEX idx_user_profiles_role     ON user_profiles(id_role);
+CREATE INDEX idx_user_profiles_status   ON user_profiles(cod_status);
+
+CREATE INDEX idx_sales_user             ON sales(id_user);
+
 -- ----------------------------------------------------------------------------
 -- 5. FUNCIONES Y TRIGGERS PARA AUTOMATIZACIÓN
 -- ----------------------------------------------------------------------------
+
+-- Función para obtener el rol del usuario autenticado
+CREATE OR REPLACE FUNCTION get_my_role()
+RETURNS TEXT
+LANGUAGE SQL
+SECURITY DEFINER  -- Ejecuta con permisos del creador (bypasea RLS)
+SET search_path = public
+AS $$
+    SELECT 
+        r.name
+    FROM 
+        user_profiles up
+        JOIN roles r 
+            ON up.id_role = r.id_role
+    WHERE 
+        up.id = auth.uid()
+    LIMIT 
+        1;
+$$;
+
+CREATE OR REPLACE FUNCTION create_user_profile()
+RETURNS TRIGGER
+SET search_path = public
+AS $$
+BEGIN
+    INSERT INTO public.user_profiles (id, full_name, phone, id_role)
+    VALUES (
+        NEW.id,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+        COALESCE(NEW.raw_user_meta_data->>'phone', NULL),
+        1  -- Default: customer
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger que se ejecuta cuando se crea un user en auth.users
+CREATE TRIGGER trg_create_user_profile
+    AFTER INSERT ON auth.users
+    FOR EACH ROW
+    EXECUTE FUNCTION create_user_profile();
 
 -- Función para actualizar updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -356,6 +431,16 @@ CREATE TRIGGER trg_variant_images_updated_at
 
 CREATE TRIGGER trg_sales_updated_at
     BEFORE UPDATE ON sales
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER trg_roles_updated_at
+    BEFORE UPDATE ON roles
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER trg_user_profiles_updated_at
+    BEFORE UPDATE ON user_profiles
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
@@ -448,6 +533,8 @@ ALTER TABLE product_variants    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE variant_images      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sales               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sale_items          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE roles               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles       ENABLE ROW LEVEL SECURITY;
 
 -- Políticas públicas de lectura para tablas paramétricas
 CREATE POLICY "Public read status"          ON status           FOR SELECT USING (true);
@@ -476,17 +563,80 @@ CREATE POLICY "Public read active images"   ON variant_images   FOR SELECT USING
 -- Políticas para sales
 CREATE POLICY "Public insert sales"         ON sales            FOR INSERT WITH CHECK (true);
 
+-- Los usuarios pueden ver:
+-- 1. Sus propias compras (id_user = auth.uid())
+-- 2. Compras anónimas con su email (customer_email = su email en auth.users)
+CREATE POLICY "Users can view own sales"
+    ON sales
+    FOR SELECT
+    USING (
+        id_user             = auth.uid()  -- Compras loggeadas
+        OR customer_email   = (
+            SELECT  email 
+            FROM    auth.users 
+            WHERE   id = auth.uid()
+        )  -- Compras anónimas con mismo email
+    );
+
+-- Admins pueden ver todas las ventas
+CREATE POLICY "Admins can view all sales"
+    ON sales
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 
+            FROM user_profiles up
+                JOIN roles r 
+                    ON up.id_role = r.id_role
+            WHERE 
+                up.id       = auth.uid()
+                AND r.name  IN ('admin', 'superadmin')
+        )
+    );
+
 -- CREATE POLICY "Public read sales"           ON sales            FOR SELECT USING (true);
 
 -- Políticas para sale_items
 CREATE POLICY "Public insert sale_items"    ON sale_items       FOR INSERT WITH CHECK (true);
-
 CREATE POLICY "Public read sale_items"      ON sale_items       FOR SELECT USING (true);
 
 -- ❌ NOTA: La política de "Read sale_items from accessible sales" no funcionará
 -- porque los usuarios no están autenticados en Supabase (no hay JWT).
 -- Por eso sale_items tiene lectura pública por ahora.
 -- Cuando implementes auth, podés cambiar esta política.
+
+-- Todos pueden leer roles (necesario para el frontend mostrar opciones)
+-- Solo tú (via Supabase dashboard) puedes modificar roles
+-- Nadie desde la app puede INSERT/UPDATE/DELETE roles
+CREATE POLICY "Public read roles" ON roles FOR SELECT USING (cod_status = 'A');
+
+-- Los usuarios pueden leer su propio perfil
+CREATE POLICY "Users can view own profile"
+    ON user_profiles
+    FOR SELECT
+    USING (auth.uid() = id);
+
+-- Los usuarios pueden actualizar su propio perfil (nombre, teléfono)
+-- pero NO pueden cambiar su rol
+-- ELIMINADA TEMPORALMENTE
+CREATE POLICY "Users can update own profile"
+    ON user_profiles 
+    FOR UPDATE
+    USING (auth.uid() = id)
+    WITH CHECK (
+        auth.uid() = id
+    ); -- El check de rol lo haremos en el frontend/backend
+
+-- ELIMINADA TEMPORALMENTE
+-- Los admins pueden ver todos los perfiles
+CREATE POLICY "Admins can view all profiles"
+    ON user_profiles 
+    FOR SELECT
+    USING (
+        get_my_role() IN ('admin', 'superadmin')
+    );
+-- Solo superadmins pueden crear admins
+-- Esta política se aplicará cuando implementes la Edge Function para crear users
 
 -- ----------------------------------------------------------------------------
 -- 7. VISTAS ÚTILES
@@ -644,6 +794,30 @@ ORDER BY vi.id_variant, vi.order_position;
     WHERE p.cod_status = 'A'
     GROUP BY p.id_product, cat.description;
 
+-- Política para que usuarios vean SOLO SUS ventas (si están logueados) O ventas anónimas con su mismo email
+CREATE OR REPLACE VIEW v_users_with_roles
+WITH (security_invoker = true)
+AS
+SELECT
+    up.id,
+    au.email,
+    up.full_name,
+    up.phone,
+    up.company_name,
+    r.name          AS role_name,
+    r.description   AS role_description,
+    up.cod_status   AS status,
+    up.created_at,
+    up.updated_at,
+    au.last_sign_in_at,
+    au.email_confirmed_at
+FROM user_profiles up
+    JOIN auth.users au 
+        ON up.id = au.id
+    JOIN roles r 
+        ON up.id_role = r.id_role
+WHERE up.cod_status = 'A';
+
 -- Función para obtener variante con imágenes
 CREATE OR REPLACE FUNCTION get_variant_with_images(p_id_variant UUID)
 RETURNS json 
@@ -797,11 +971,32 @@ COMMENT ON TABLE variant_images                 IS 'Imágenes de cada variante';
 COMMENT ON COLUMN variant_images.order_position IS 'Orden (1 = principal)';
 
 COMMENT ON TABLE sales                          IS 'Órdenes de compra';
+COMMENT ON COLUMN sales.id_user                 IS 'Usuario que realizó la compra (NULL si no creo una cuenta)';
+
 COMMENT ON TABLE sale_items                     IS 'Items de cada venta (snapshot)';
+
 
 COMMENT ON VIEW v_products_complete             IS 'Vista para homepage: 1 imagen por color';
 COMMENT ON VIEW v_variants_by_size              IS 'Vista: Talle → Colores disponibles';
 COMMENT ON VIEW v_variant_images                IS 'Imágenes de variante para carousel';
+COMMENT ON VIEW v_users_with_roles              IS 'Vista de usuarios con información completa para panel admin';
+
+COMMENT ON TABLE roles                          IS 'Roles de usuario para control de acceso';
+COMMENT ON COLUMN roles.name                    IS 'Nombre único del rol (customer, wholesaler, admin, superadmin)';
+COMMENT ON COLUMN roles.description             IS 'Descripción detallada de permisos y capacidades del rol';
+
+COMMENT ON TABLE user_profiles                  IS 'Perfiles de usuario extendidos vinculados a auth.users';
+COMMENT ON COLUMN user_profiles.id              IS 'FK a auth.users.id (mismo UUID)';
+COMMENT ON COLUMN user_profiles.company_name    IS 'Nombre de empresa (solo para mayoristas)';
+COMMENT ON COLUMN user_profiles.id_role         IS 'Rol del usuario (customer, wholesaler, admin, superadmin)';
+
+COMMENT ON FUNCTION create_user_profile()       IS 'Auto-crea user_profile cuando se registra un nuevo usuario en auth.users';
+
+COMMENT ON POLICY "Public read roles"               ON roles            IS 'Cualquiera puede leer roles activos';
+
+COMMENT ON POLICY "Users can view own profile"      ON user_profiles    IS 'Usuarios ven su propio perfil';
+COMMENT ON POLICY "Users can update own profile"    ON user_profiles    IS 'Usuarios editan su perfil (excepto rol)';
+COMMENT ON POLICY "Admins can view all profiles"    ON user_profiles    IS 'Admins y superadmins ven todos los perfiles';
 
 -- ESTE NO LO EJECUTO PORQUE DIÓ ERROR
 COMMENT ON VIEW v_product_detail                IS 'Vista completa para detalle de producto';
