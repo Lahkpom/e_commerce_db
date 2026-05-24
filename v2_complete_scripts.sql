@@ -289,6 +289,18 @@ CREATE TABLE user_profiles (
     updated_at      TIMESTAMP       NULL
 );
 
+-- Tabla cara almacenar el carrito de compras
+
+CREATE TABLE cart (
+    id_user     UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    id_variant  UUID        NOT NULL REFERENCES product_variants(id_variant) ON DELETE CASCADE,
+    quantity    INTEGER     NOT NULL CHECK (quantity > 0) DEFAULT 1,
+    created_at  TIMESTAMP   NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMP   NULL,
+    
+    PRIMARY KEY (id_user, id_variant)
+);
+
 -- ----------------------------------------------------------------------------
 -- 4. ÍNDICES PARA MEJORAR PERFORMANCE
 -- ----------------------------------------------------------------------------
@@ -321,6 +333,8 @@ CREATE INDEX idx_user_profiles_role     ON user_profiles(id_role);
 CREATE INDEX idx_user_profiles_status   ON user_profiles(cod_status);
 
 CREATE INDEX idx_sales_user             ON sales(id_user);
+
+CREATE INDEX idx_cart_user              ON cart(id_user);
 
 -- ----------------------------------------------------------------------------
 -- 5. FUNCIONES Y TRIGGERS PARA AUTOMATIZACIÓN
@@ -444,6 +458,11 @@ CREATE TRIGGER trg_user_profiles_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER trg_cart_updated_at
+    BEFORE UPDATE ON cart
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
 -- Función para validar subtotal
 CREATE OR REPLACE FUNCTION validate_sale_item_subtotal()
 RETURNS TRIGGER 
@@ -535,6 +554,7 @@ ALTER TABLE sales               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sale_items          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE roles               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_profiles       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cart                ENABLE ROW LEVEL SECURITY;
 
 -- Políticas públicas de lectura para tablas paramétricas
 CREATE POLICY "Public read status"          ON status           FOR SELECT USING (true);
@@ -615,6 +635,29 @@ CREATE POLICY "Users can view own profile"
     ON user_profiles
     FOR SELECT
     USING (auth.uid() = id);
+
+-- Políticas de INSERT, UPDATE y DELETE para carrito de compras por usuario
+
+-- Los usuarios solo ven su propio carrito
+CREATE POLICY "Users can view own cart"
+    ON cart FOR SELECT
+    USING (auth.uid() = id_user);
+
+-- Los usuarios pueden agregar a su propio carrito
+CREATE POLICY "Users can add to own cart"
+    ON cart FOR INSERT
+    WITH CHECK (auth.uid() = id_user);
+
+-- Los usuarios pueden actualizar su propio carrito
+CREATE POLICY "Users can update own cart"
+    ON cart FOR UPDATE
+    USING (auth.uid() = id_user)
+    WITH CHECK (auth.uid() = id_user);
+
+-- Los usuarios pueden eliminar de su propio carrito
+CREATE POLICY "Users can delete from own cart"
+    ON cart FOR DELETE
+    USING (auth.uid() = id_user);
 
 -- Los usuarios pueden actualizar su propio perfil (nombre, teléfono)
 -- pero NO pueden cambiar su rol
@@ -765,34 +808,34 @@ WHERE vi.cod_status = 'A'
 ORDER BY vi.id_variant, vi.order_position;
 
 -- Vista de detalle de producto
-    CREATE OR REPLACE VIEW v_product_detail
-    WITH (security_invoker = true)
-    AS
-    SELECT
-        p.id_product,
-        p.name                                AS product_name,
-        p.short_desc,
-        p.long_desc,
-        p.base_price,
-        cat.description                       AS category,
-        p.cod_status                          AS status,
+CREATE OR REPLACE VIEW v_product_detail
+WITH (security_invoker = true)
+AS
+SELECT
+    p.id_product,
+    p.name                                AS product_name,
+    p.short_desc,
+    p.long_desc,
+    p.base_price,
+    cat.description                       AS category,
+    p.cod_status                          AS status,
 
-        COUNT(DISTINCT pv.id_variant)         AS total_variants,
-        COUNT(DISTINCT pv.id_size)            AS total_sizes,
-        COUNT(DISTINCT pv.id_color)           AS total_colors,
-        COALESCE(SUM(pv.stock), 0)            AS total_stock,
-        COALESCE(MIN(pv.price), p.base_price) AS min_price,
-        COALESCE(MAX(pv.price), p.base_price) AS max_price,
+    COUNT(DISTINCT pv.id_variant)         AS total_variants,
+    COUNT(DISTINCT pv.id_size)            AS total_sizes,
+    COUNT(DISTINCT pv.id_color)           AS total_colors,
+    COALESCE(SUM(pv.stock), 0)            AS total_stock,
+    COALESCE(MIN(pv.price), p.base_price) AS min_price,
+    COALESCE(MAX(pv.price), p.base_price) AS max_price,
 
-        p.created_at,
-        p.updated_at
+    p.created_at,
+    p.updated_at
 
-    FROM products   p
-    JOIN categories cat ON p.id_category = cat.id_category
-    LEFT JOIN product_variants pv ON p.id_product = pv.id_product
-        AND pv.cod_status = 'A'
-    WHERE p.cod_status = 'A'
-    GROUP BY p.id_product, cat.description;
+FROM products   p
+JOIN categories cat ON p.id_category = cat.id_category
+LEFT JOIN product_variants pv ON p.id_product = pv.id_product
+    AND pv.cod_status = 'A'
+WHERE p.cod_status = 'A'
+GROUP BY p.id_product, cat.description;
 
 -- Política para que usuarios vean SOLO SUS ventas (si están logueados) O ventas anónimas con su mismo email
 CREATE OR REPLACE VIEW v_users_with_roles
@@ -957,6 +1000,54 @@ JOIN sale_status        ss ON s.id_sale_status      = ss.id_status
 JOIN payment_methods    pm ON s.id_payment_method   = pm.id_method
 JOIN payment_status     ps ON s.id_payment_status   = ps.id_status;
 
+-- Trae la información del carrito de compras de un usuario junto con toda la información necesaria para renderizar
+CREATE OR REPLACE VIEW v_cart_complete
+WITH (security_invoker = true)
+AS
+SELECT
+    c.id_user,
+    c.id_variant,
+    c.quantity,
+    c.created_at,
+    c.updated_at,
+    
+    -- Info del producto
+    p.id_product,
+    p.name          AS product_name,
+    pv.sku,
+    pv.price,
+    pv.stock,
+    pv.cod_status   AS status,
+    
+    -- Info de color y talle
+    col.description AS color_description,
+    col.hex_code,
+    sz.size,
+    
+    -- Imagen principal
+    (
+        SELECT image_url 
+        FROM variant_images vi
+        WHERE vi.id_variant = c.id_variant
+          AND vi.cod_status = 'A'
+        ORDER BY vi.order_position
+        LIMIT 1
+    ) AS main_image,
+    
+    -- Subtotal calculado con precio actual
+    (c.quantity * pv.price) AS subtotal,
+    
+    -- Validación de stock
+    CASE 
+        WHEN pv.stock >= c.quantity THEN true ELSE false
+    END AS has_stock
+
+FROM cart c
+JOIN product_variants   pv  ON c.id_variant    = pv.id_variant
+JOIN products           p   ON pv.id_product   = p.id_product
+JOIN colors             col ON pv.id_color     = col.id_color
+JOIN sizes              sz  ON pv.id_size      = sz.id_size;
+
 -- ----------------------------------------------------------------------------
 -- 8. COMENTARIOS
 -- ----------------------------------------------------------------------------
@@ -975,12 +1066,6 @@ COMMENT ON COLUMN sales.id_user                 IS 'Usuario que realizó la comp
 
 COMMENT ON TABLE sale_items                     IS 'Items de cada venta (snapshot)';
 
-
-COMMENT ON VIEW v_products_complete             IS 'Vista para homepage: 1 imagen por color';
-COMMENT ON VIEW v_variants_by_size              IS 'Vista: Talle → Colores disponibles';
-COMMENT ON VIEW v_variant_images                IS 'Imágenes de variante para carousel';
-COMMENT ON VIEW v_users_with_roles              IS 'Vista de usuarios con información completa para panel admin';
-
 COMMENT ON TABLE roles                          IS 'Roles de usuario para control de acceso';
 COMMENT ON COLUMN roles.name                    IS 'Nombre único del rol (customer, wholesaler, admin, superadmin)';
 COMMENT ON COLUMN roles.description             IS 'Descripción detallada de permisos y capacidades del rol';
@@ -990,7 +1075,17 @@ COMMENT ON COLUMN user_profiles.id              IS 'FK a auth.users.id (mismo UU
 COMMENT ON COLUMN user_profiles.company_name    IS 'Nombre de empresa (solo para mayoristas)';
 COMMENT ON COLUMN user_profiles.id_role         IS 'Rol del usuario (customer, wholesaler, admin, superadmin)';
 
+COMMENT ON TABLE cart                           IS 'Carrito de compras de usuarios logueados';
+COMMENT ON COLUMN cart.id_user                  IS 'Usuario dueño del carrito';
+COMMENT ON COLUMN cart.id_variant               IS 'Variante del producto en el carrito';
+
 COMMENT ON FUNCTION create_user_profile()       IS 'Auto-crea user_profile cuando se registra un nuevo usuario en auth.users';
+
+COMMENT ON VIEW v_products_complete             IS 'Vista para homepage: 1 imagen por color';
+COMMENT ON VIEW v_variants_by_size              IS 'Vista: Talle → Colores disponibles';
+COMMENT ON VIEW v_variant_images                IS 'Imágenes de variante para carousel';
+COMMENT ON VIEW v_users_with_roles              IS 'Vista de usuarios con información completa para panel admin';
+COMMENT ON VIEW v_cart_complete                 IS 'Carrito con info completa de productos (precios/stock actualizados)';
 
 COMMENT ON POLICY "Public read roles"               ON roles            IS 'Cualquiera puede leer roles activos';
 
