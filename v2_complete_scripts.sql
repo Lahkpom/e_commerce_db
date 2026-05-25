@@ -1048,6 +1048,39 @@ JOIN products           p   ON pv.id_product   = p.id_product
 JOIN colors             col ON pv.id_color     = col.id_color
 JOIN sizes              sz  ON pv.id_size      = sz.id_size;
 
+-- Esta también es del carrito de compras pero hidrata la información de un carrito en el localstorage
+CREATE OR REPLACE VIEW v_variant_public
+WITH (security_invoker = false)  -- accesible para anónimos
+AS
+SELECT
+    pv.id_variant,
+    p.id_product,
+    p.name              AS product_name,
+    pv.sku,
+    pv.price,
+    pv.stock,
+
+    -- Info de color y talle
+    col.description     AS color_description,
+    col.hex_code,
+    sz.size,
+
+    -- Imagen principal
+    (
+        SELECT image_url
+        FROM variant_images vi
+        WHERE vi.id_variant = pv.id_variant
+          AND vi.cod_status = 'A'
+        ORDER BY vi.order_position
+        LIMIT 1
+    ) AS main_image
+
+FROM product_variants pv
+JOIN products   p   ON pv.id_product = p.id_product
+JOIN colors     col ON pv.id_color   = col.id_color
+JOIN sizes      sz  ON pv.id_size    = sz.id_size
+WHERE pv.cod_status = 'A';
+
 -- ----------------------------------------------------------------------------
 -- 8. COMENTARIOS
 -- ----------------------------------------------------------------------------
@@ -1086,6 +1119,7 @@ COMMENT ON VIEW v_variants_by_size              IS 'Vista: Talle → Colores dis
 COMMENT ON VIEW v_variant_images                IS 'Imágenes de variante para carousel';
 COMMENT ON VIEW v_users_with_roles              IS 'Vista de usuarios con información completa para panel admin';
 COMMENT ON VIEW v_cart_complete                 IS 'Carrito con info completa de productos (precios/stock actualizados)';
+COMMENT ON VIEW v_variant_public                IS 'Datos públicos de variantes activas, accesible para usuarios anónimos. Usada para hidratar el carrito desde localStorage.';
 
 COMMENT ON POLICY "Public read roles"               ON roles            IS 'Cualquiera puede leer roles activos';
 
@@ -1095,6 +1129,13 @@ COMMENT ON POLICY "Admins can view all profiles"    ON user_profiles    IS 'Admi
 
 -- ESTE NO LO EJECUTO PORQUE DIÓ ERROR
 COMMENT ON VIEW v_product_detail                IS 'Vista completa para detalle de producto';
+
+-- ----------------------------------------------------------------------------
+-- 9. GRANTS
+-- ----------------------------------------------------------------------------
+
+GRANT SELECT ON v_variant_public TO anon;
+
 
 -- ----------------------------------------------------------------------------
 -- FIN DEL SCRIPT
