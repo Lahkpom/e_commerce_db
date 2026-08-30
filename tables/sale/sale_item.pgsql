@@ -1,0 +1,61 @@
+CREATE TABLE sale_item (
+    sale_item_id            UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    sale_id                 UUID            NOT NULL REFERENCES sale(sale_id) ON DELETE CASCADE,
+    variant_id              UUID            NOT NULL REFERENCES product_variant(variant_id) ON DELETE SET NULL,
+    variant_desc            VARCHAR(255)    NOT NULL,
+    product_name            VARCHAR(255)    NOT NULL,
+    sale_item_sku           VARCHAR(100)    NOT NULL,
+    sale_item_unit_price    DECIMAL(10, 2)  NOT NULL CHECK (sale_item_unit_price > 0),
+    sale_item_quantity      INTEGER         NOT NULL CHECK (sale_item_quantity > 0),
+    sale_item_subtotal      DECIMAL(10, 2)  NOT NULL CHECK (sale_item_subtotal > 0),
+    created_at              TIMESTAMP       NOT NULL DEFAULT NOW()
+);
+-- ########################################################################################
+CREATE INDEX idx_sale_item_sale        ON sale_item(sale_id);
+CREATE INDEX idx_sale_item_variant     ON sale_item(variant_id);
+-- ########################################################################################
+CREATE OR REPLACE FUNCTION validate_sale_item_subtotal()
+RETURNS TRIGGER 
+SET search_path = public
+AS $$
+BEGIN
+    IF NEW.sale_item_subtotal != (NEW.sale_item_unit_price * NEW.sale_item_quantity) THEN
+        RAISE EXCEPTION 'El sale_item_subtotal debe ser igual a sale_item_unit_price × sale_item_quantity';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+-- ----------------------------------------------------------------------------------------
+CREATE TRIGGER trg_validate_subtotal
+    BEFORE INSERT OR UPDATE ON sale_item
+    FOR EACH ROW
+    EXECUTE FUNCTION validate_sale_item_subtotal();
+-- ########################################################################################
+-- Función para verificar stock
+CREATE OR REPLACE FUNCTION check_variant_stock()
+RETURNS TRIGGER 
+SET search_path = public
+AS $$
+DECLARE
+    available_stock INTEGER;
+    variant_info VARCHAR;
+BEGIN
+    SELECT variant_stock, sale_item_sku INTO available_stock, variant_info
+    FROM product_variant
+    WHERE variant_id = NEW.variant_id;
+    
+    IF available_stock < NEW.sale_item_quantity THEN
+        RAISE EXCEPTION 'Stock insuficiente para variante %. Disponible: %, Solicitado: %', 
+            variant_info, available_stock, NEW.sale_item_quantity;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+-- ----------------------------------------------------------------------------------------
+CREATE TRIGGER trg_check_variant_stock
+    BEFORE INSERT ON sale_item
+    FOR EACH ROW
+    EXECUTE FUNCTION check_variant_stock();
+-- ########################################################################################
+COMMENT ON TABLE sale_item IS 'Items de cada venta (snapshot)';
