@@ -1,6 +1,5 @@
 -- Esta también es del carrito de compras pero hidrata la información de un carrito en el localstorage
 CREATE OR REPLACE VIEW v_localstorage_cart
-WITH (security_invoker = false)  -- accesible para anónimos
 AS
 SELECT
     pv.variant_id,

@@ -1,5 +1,4 @@
 CREATE OR REPLACE VIEW v_product_detail
-WITH (security_invoker = true)
 AS
 SELECT
     p.product_id,

@@ -1,6 +1,5 @@
 -- 
 CREATE OR REPLACE VIEW v_cart_complete
-WITH (security_invoker = true)
 AS
 SELECT
     c.user_id,
