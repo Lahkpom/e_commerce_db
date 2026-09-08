@@ -1,6 +1,6 @@
 CREATE TYPE enum_sale_status AS ENUM (
     'pendiente',
-    'preparando',
+    'preparacion',
     'enviado',
     'entregado',
     'cancelado',

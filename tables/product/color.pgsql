@@ -2,7 +2,7 @@ CREATE TABLE color (
     color_id    SERIAL          PRIMARY KEY,
     color_name  VARCHAR(50)     NOT NULL UNIQUE,
     color_desc  TEXT            NOT NULL UNIQUE,
-    color_code  VARCHAR(7)      NOT NULL UNIQUE CHECK (color_code ~* '^#[A-Fa-f0-9]{6}$')
+    color_code  VARCHAR(7)      NOT NULL UNIQUE CHECK (color_code ~* '^#[A-Fa-f0-9]{6}$'),
     row_status  enum_row_status NOT NULL DEFAULT 'active',
     created_at  TIMESTAMP       NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMP       NULL
