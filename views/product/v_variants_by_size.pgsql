@@ -11,7 +11,7 @@ SELECT DISTINCT
     s.description AS size_description
 
 FROM products        p
-JOIN product_variants pv ON p.id_product = pv.id_product
+JOIN variants pv ON p.id_product = pv.id_product
 JOIN sizes            s  ON pv.id_size   = s.id_size
 WHERE pv.row_status = 'active'
   AND p.cod_status  = 'A'

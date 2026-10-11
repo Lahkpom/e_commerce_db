@@ -1,7 +1,7 @@
 CREATE TABLE sale_item (
     sale_item_id            UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
     sale_id                 UUID            NOT NULL REFERENCES sale(sale_id) ON DELETE CASCADE,
-    variant_id              UUID            NOT NULL REFERENCES product_variant(variant_id) ON DELETE SET NULL,
+    variant_id              UUID            NOT NULL REFERENCES variant(variant_id) ON DELETE SET NULL,
     variant_desc            VARCHAR(255)    NOT NULL,
     product_name            VARCHAR(255)    NOT NULL,
     sale_item_sku           VARCHAR(100)    NOT NULL,
@@ -24,7 +24,7 @@ DECLARE
     variant_info VARCHAR;
 BEGIN
     SELECT variant_stock, sale_item_sku INTO available_stock, variant_info
-    FROM product_variant
+    FROM variant
     WHERE variant_id = NEW.variant_id;
     
     IF available_stock < NEW.sale_item_quantity THEN

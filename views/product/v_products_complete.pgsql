@@ -32,7 +32,7 @@ SELECT
                     SELECT 
                         vi.image_url
                     FROM 
-                        product_variant         pv_inner
+                        variant         pv_inner
                         JOIN variant_image      vi 
                             ON vi.variant_id    = pv_inner.variant_id
                     WHERE 
@@ -55,7 +55,7 @@ SELECT
                 c.color_desc, 
                 c.color_code
             FROM 
-                product_variant     pv2
+                variant     pv2
                 JOIN color          c 
                     ON pv2.color_id = c.color_id
             WHERE 
@@ -65,7 +65,7 @@ SELECT
     ), '[]'::json) AS variant_main_images
     
 FROM product p
-LEFT JOIN product_variant pv ON p.product_id = pv.product_id AND pv.row_status = 'active'
+LEFT JOIN variant pv ON p.product_id = pv.product_id AND pv.row_status = 'active'
 WHERE 
     p.row_status = 'active'
 GROUP BY 

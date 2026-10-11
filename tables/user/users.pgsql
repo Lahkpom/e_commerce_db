@@ -1,6 +1,6 @@
 CREATE TABLE users (
     user_id                 UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_id                 INTEGER         NOT NULL REFERENCES user_role(role_id) DEFAULT 4,
+    role_id                 enum_user_role  NOT NULL DEFAULT 'customer',
     user_password           VARCHAR(255)    NOT NULL,
     user_name               VARCHAR(255)    NOT NULL,
     user_email              VARCHAR(255)    NOT NULL UNIQUE CHECK (user_email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),

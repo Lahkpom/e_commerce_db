@@ -44,7 +44,7 @@ BEGIN
             '[]'::json
         )
     ) INTO result
-    FROM product_variants pv
+    FROM variants pv
     JOIN products   p ON pv.id_product  = p.id_product
     JOIN colors     c ON pv.id_color    = c.id_color
     JOIN sizes      s ON pv.id_size     = s.id_size

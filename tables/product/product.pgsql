@@ -4,9 +4,9 @@ CREATE TABLE product (
     product_name        VARCHAR(255)    NOT NULL UNIQUE,
     product_short_desc  VARCHAR(255)    NOT NULL,
     product_long_desc   TEXT            NOT NULL,
-    row_status          enum_row_status NOT NULL DEFAULT 'active',
-    created_at          TIMESTAMP       NOT NULL DEFAULT NOW(),
-    updated_at          TIMESTAMP       NULL
+    row_status          enum_row_status NOT NULL DEFAULT 'ACTIVE',
+    created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ     NULL
 );
 -- ########################################################################################
 CREATE TRIGGER trg_product_update

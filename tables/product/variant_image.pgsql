@@ -1,6 +1,6 @@
 CREATE TABLE variant_image (
     image_id    UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
-    variant_id  UUID            NOT NULL REFERENCES product_variant(variant_id) ON DELETE CASCADE,
+    variant_id  UUID            NOT NULL REFERENCES variant(variant_id) ON DELETE CASCADE,
     image_url   TEXT            NOT NULL,
     image_order INTEGER         NOT NULL CHECK (image_order > 0),
     row_status  enum_row_status NOT NULL DEFAULT 'active',

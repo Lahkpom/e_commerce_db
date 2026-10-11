@@ -28,7 +28,7 @@ SELECT
         LIMIT 1
     ) AS main_image
 
-FROM product_variant pv
+FROM variant pv
 JOIN product    p   ON pv.product_id    = p.product_id
 JOIN color      col ON pv.color_id      = col.color_id
 JOIN size       sz  ON pv.size_id       = sz.size_id

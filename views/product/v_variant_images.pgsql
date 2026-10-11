@@ -19,7 +19,7 @@ SELECT
     
     vi.created_at
 FROM variant_images vi
-JOIN product_variants   pv  ON vi.id_variant    = pv.id_variant
+JOIN variants   pv  ON vi.id_variant    = pv.id_variant
 JOIN products           p   ON pv.id_product    = p.id_product
 JOIN colors             c   ON pv.id_color      = c.id_color
 JOIN sizes              s   ON pv.id_size       = s.id_size

@@ -1,12 +1,21 @@
 CREATE TABLE color (
     color_id    SERIAL          PRIMARY KEY,
-    color_name  VARCHAR(50)     NOT NULL UNIQUE,
-    color_desc  TEXT            NOT NULL UNIQUE,
-    color_code  VARCHAR(7)      NOT NULL UNIQUE CHECK (color_code ~* '^#[A-Fa-f0-9]{6}$'),
-    row_status  enum_row_status NOT NULL DEFAULT 'active',
-    created_at  TIMESTAMP       NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMP       NULL
+    color_name  VARCHAR(50)     NOT NULL,
+    color_desc  TEXT            NOT NULL,
+    color_code  VARCHAR(7)      NOT NULL CHECK (color_code ~* '^#[A-Fa-f0-9]{6}$'),
+    row_status  enum_row_status NOT NULL DEFAULT 'ACTIVE',
+    created_at  TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ     NULL
 );
+-- ########################################################################################
+-- Índices únicos parciales (excluyen los borrados lógicos)
+CREATE UNIQUE INDEX uk_color_name_not_deleted 
+    ON color (LOWER(color_name)) 
+    WHERE row_status <> 'DELETED';
+
+CREATE UNIQUE INDEX uk_color_code_not_deleted 
+    ON color (UPPER(color_code)) 
+    WHERE row_status <> 'DELETED';
 -- ########################################################################################
 CREATE TRIGGER trg_color_update
     BEFORE UPDATE ON color
@@ -19,17 +28,17 @@ COMMENT ON COLUMN color.color_desc   IS 'Si quiere agregar alguna descripción l
 COMMENT ON COLUMN color.color_code   IS 'El color_code se debe guardar en hexadecimal y en mayúsculas. Solo puede ser en su versión de 6 caracteres';
 -- ########################################################################################
 INSERT INTO color (color_name, color_desc, color_code) VALUES 
-    ('black'        , 'Negro'   , '#000000'),
-    ('pink'         , 'Rosa'    , '#FFC0CB'),
-    ('beige'        , 'Beige'   , '#F5F5DC'),
-    ('white'        , 'Blanco'  , '#FFFFFF'),
-    ('fuchsia'      , 'Fuxia'   , '#FF00FF'),
-    ('brown'        , 'Marrón'  , '#A52A2A'),
-    ('camel'        , 'Camel'   , '#C19A6B'),
-    ('blue'         , 'Azul'    , '#0000FF'),
-    ('saddlebrown'  , 'Suela'   , '#8B4513'),
-    ('green'        , 'Verde'   , '#008000'),
-    ('yellow'       , 'Amarillo', '#FFFF00'),
-    ('orange'       , 'Naranja' , '#FFA500'),
-    ('violet'       , 'Violeta' , '#EE82EE'),
-    ('lilac'        , 'Lila'    , '#C8A2C8');
+    ('Negro'   , 'black'        , '#000000'),
+    ('Rosa'    , 'pink'         , '#FFC0CB'),
+    ('Beige'   , 'beige'        , '#F5F5DC'),
+    ('Blanco'  , 'white'        , '#FFFFFF'),
+    ('Fuxia'   , 'fuchsia'      , '#FF00FF'),
+    ('Marrón'  , 'brown'        , '#A52A2A'),
+    ('Camel'   , 'camel'        , '#C19A6B'),
+    ('Azul'    , 'blue'         , '#0000FF'),
+    ('Suela'   , 'saddlebrown'  , '#8B4513'),
+    ('Verde'   , 'green'        , '#008000'),
+    ('Amarillo', 'yellow'       , '#FFFF00'),
+    ('Naranja' , 'orange'       , '#FFA500'),
+    ('Violeta' , 'violet'       , '#EE82EE'),
+    ('Lila'    , 'lilac'        , '#C8A2C8');

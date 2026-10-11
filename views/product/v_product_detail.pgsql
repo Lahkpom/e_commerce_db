@@ -17,7 +17,7 @@ SELECT
     COALESCE(MAX(pv.variant_price), p.base_price)   AS max_price
 
 FROM product                    p
-    LEFT JOIN product_variant   pv 
+    LEFT JOIN variant   pv 
         ON p.product_id         = pv.product_id
         AND pv.row_status       = 'active'
 

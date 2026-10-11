@@ -55,7 +55,7 @@ SELECT
                 ) ORDER BY si.created_at ASC
             )
             FROM sale_item si
-            LEFT JOIN product_variant pv ON si.variant_id = pv.variant_id
+            LEFT JOIN variant pv ON si.variant_id = pv.variant_id
             LEFT JOIN color col          ON pv.color_id   = col.color_id
             LEFT JOIN size sz            ON pv.size_id    = sz.size_id
             WHERE si.sale_id = s.sale_id

@@ -1,3 +1,5 @@
+-- Agregar todos los campos de rowstatus, created_at y updated_at
+
 CREATE TABLE sale (
     sale_id             UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id             UUID                NULL REFERENCES users(user_id) ON DELETE SET NULL,
@@ -42,7 +44,7 @@ BEGIN
         AND OLD.payment_status   IN ('pendiente', 'rechazado')
     THEN
         UPDATE 
-            product_variant pv
+            variant pv
         SET 
             variant_stock = variant_stock - si.quantity
         FROM 

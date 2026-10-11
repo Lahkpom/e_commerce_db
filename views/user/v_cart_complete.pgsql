@@ -42,7 +42,7 @@ SELECT
     END AS has_stock
 
 FROM cart               c
-JOIN product_variant    pv  ON c.variant_id     = pv.variant_id
+JOIN variant    pv  ON c.variant_id     = pv.variant_id
 JOIN product            p   ON pv.product_id    = p.product_id
 JOIN color              col ON pv.color_id      = col.color_id
 JOIN size               sz  ON pv.size_id       = sz.size_id;
