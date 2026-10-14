@@ -10,7 +10,7 @@ CREATE TABLE users (
     failed_login_attempts   INTEGER         NOT NULL DEFAULT 0 CHECK (failed_login_attempts >= 0),
     locked_until            TIMESTAMPTZ     NULL,
     last_login_at           TIMESTAMPTZ     NULL,
-    password_expires_at     TIMESTAMPTZ     NOT NULL DEFAULT (NOW() + INTERVAL '180 days')
+    password_expires_at     TIMESTAMPTZ     NOT NULL DEFAULT (NOW() + INTERVAL '180 days'),
     row_status              enum_row_status NOT NULL DEFAULT 'ACTIVE',
     created_at              TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at              TIMESTAMPTZ     NULL

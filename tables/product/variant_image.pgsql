@@ -1,5 +1,5 @@
 CREATE TABLE variant_image (
-    image_id    UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    image_id    UUID            PRIMARY KEY DEFAULT gen_random_uuid(), -- Tendría  que ser un BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY??
     variant_id  UUID            NOT NULL REFERENCES variant(variant_id) ON DELETE CASCADE,
     image_url   TEXT            NOT NULL,
     image_order INTEGER         NOT NULL CHECK (image_order > 0),

@@ -1,13 +1,14 @@
 CREATE TABLE user_session (
-    session_id          UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id             UUID            NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    refresh_token_hash  VARCHAR(255)    NOT NULL UNIQUE,
-    device_info         VARCHAR(255)    NULL,
-    ip_address          INET            NULL,
-    is_revoked          BOOLEAN         NOT NULL DEFAULT FALSE,
-    expires_at          TIMESTAMP       NOT NULL,
-    created_at          TIMESTAMP       NOT NULL DEFAULT NOW(),
-    last_activity_at    TIMESTAMP       NOT NULL DEFAULT NOW()
+    session_id              UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id                 UUID            NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    refresh_token_hash      VARCHAR(255)    NOT NULL UNIQUE,
+    device_info             VARCHAR(255)    NULL,
+    ip_address              INET            NULL,
+    is_revoked              BOOLEAN         NOT NULL DEFAULT FALSE,
+    expires_at              TIMESTAMPTZ     NOT NULL,
+    created_at              TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    last_activity_at        TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    replaced_by_session_id  UUID            NULL
 );
 -- ########################################################################################
 CREATE INDEX idx_user_session_lookup        ON user_session(user_id)            WHERE is_revoked = FALSE;
@@ -23,3 +24,4 @@ COMMENT ON COLUMN user_session.is_revoked           IS 'Indica si la sesión fue
 COMMENT ON COLUMN user_session.expires_at           IS 'Fecha límite de validez del Refresh Token.';
 COMMENT ON COLUMN user_session.created_at           IS 'Fecha de inicio de la sesión.';
 COMMENT ON COLUMN user_session.last_activity_at     IS 'Última vez que este Refresh Token fue utilizado para emitir un Access Token.';
+COMMENT ON COLUMN user_session.last_activity_at     IS 'Cuando un usuario renueva su token, la sesión vieja se marca como revocada y apunta a la nueva. Si alguien intenta usar de nuevo un refresh token revocado (detección de robo de token), tu backend detecta el rehúso gracias a esta cadena y anula todas las sesiones del usuario.';

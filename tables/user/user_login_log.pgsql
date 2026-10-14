@@ -1,12 +1,12 @@
 CREATE TABLE user_login_log (
-    log_id          BIGSERIAL       PRIMARY KEY,
+    log_id          BIGINT          GENERATED ALWAYS AS IDENTITY PRIMARY KEY
     user_id         UUID            NULL REFERENCES users(user_id) ON DELETE SET NULL,
     attempted_email VARCHAR(255)    NOT NULL,
     is_success      BOOLEAN         NOT NULL,
     failure_reason  VARCHAR(100)    NULL,
     ip_address      INET            NULL,
     user_agent      TEXT            NULL,
-    created_at      TIMESTAMP       NOT NULL DEFAULT NOW()
+    created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
 -- ########################################################################################
 CREATE INDEX idx_login_log_user         ON user_login_log(user_id, created_at DESC);

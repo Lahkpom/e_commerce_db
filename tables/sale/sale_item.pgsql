@@ -1,5 +1,5 @@
 CREATE TABLE sale_item (
-    sale_item_id            UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
+    sale_item_id            UUID            PRIMARY KEY DEFAULT gen_random_uuid(), -- Tendría  que ser un BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY??
     sale_id                 UUID            NOT NULL REFERENCES sale(sale_id) ON DELETE CASCADE,
     variant_id              UUID            NOT NULL REFERENCES variant(variant_id) ON DELETE SET NULL,
     variant_desc            VARCHAR(255)    NOT NULL,

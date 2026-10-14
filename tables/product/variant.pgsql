@@ -1,5 +1,5 @@
 CREATE TABLE variant (
-    variant_id          UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
+    variant_id          UUID                PRIMARY KEY DEFAULT gen_random_uuid(), -- Tendría  que ser un BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY??
     product_id          UUID                NOT NULL REFERENCES product(product_id),
     color_id            INTEGER             NOT NULL REFERENCES color(color_id),
     variant_size        enum_numeric_size   NOT NULL,
