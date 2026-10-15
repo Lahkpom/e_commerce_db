@@ -1,7 +1,7 @@
 CREATE TABLE variant (
-    variant_id          UUID                PRIMARY KEY DEFAULT gen_random_uuid(), -- Tendría  que ser un BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY??
+    variant_id          BIGINT              GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     product_id          UUID                NOT NULL REFERENCES product(product_id),
-    color_id            INTEGER             NOT NULL REFERENCES color(color_id),
+    color_id            BIGINT              NOT NULL REFERENCES color(color_id),
     variant_size        enum_numeric_size   NOT NULL,
     target_gender       enum_target_gender  NOT NULL,
     variant_desc        VARCHAR(255)        NOT NULL,

@@ -1,5 +1,5 @@
 CREATE TABLE color (
-    color_id    SERIAL          PRIMARY KEY, -- Tendría  que ser un BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY??
+    color_id    BIGINT          GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     color_name  VARCHAR(50)     NOT NULL,
     color_desc  TEXT            NOT NULL,
     color_code  VARCHAR(7)      NOT NULL CHECK (color_code ~* '^#[A-Fa-f0-9]{6}$'),
