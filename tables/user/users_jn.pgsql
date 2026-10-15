@@ -1,7 +1,7 @@
 -- 1. Crear la tabla de Journal
 CREATE TABLE users_jn (
-    jn_id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    jn_operation    CHAR(1)         NOT NULL CHECK (jn_operation IN ('I', 'U', 'D')), -- Insert, Update, Delete
+    jn_id           BIGINT          GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    jn_operation    VARCHAR(10)     NOT NULL CHECK (jn_operation IN ('UPDATE', 'DELETE')),
     jn_timestamp    TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     jn_changed_by   VARCHAR(255)    NULL, -- usuario o service que ejecutó el cambio
     
@@ -31,37 +31,49 @@ RETURNS TRIGGER
 SET search_path = public
 LANGUAGE plpgsql AS $$
 BEGIN
-    IF TG_OP = 'UPDATE' THEN
-        INSERT INTO users_jn (
-            jn_operation, jn_timestamp,
-            user_id, user_role, user_password, user_name, user_email,
-            user_phone, company_name, is_email_verified, failed_login_attempts,
-            locked_until, last_login_at, password_expires_at, row_status,
-            created_at, updated_at
-        ) VALUES (
-            'U', NOW(),
-            OLD.user_id, OLD.user_role, OLD.user_password, OLD.user_name, OLD.user_email,
-            OLD.user_phone, OLD.company_name, OLD.is_email_verified, OLD.failed_login_attempts,
-            OLD.locked_until, OLD.last_login_at, OLD.password_expires_at, OLD.row_status,
-            OLD.created_at, OLD.updated_at
-        );
-        RETURN NEW;
-    ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO users_jn (
-            jn_operation, jn_timestamp,
-            user_id, user_role, user_password, user_name, user_email,
-            user_phone, company_name, is_email_verified, failed_login_attempts,
-            locked_until, last_login_at, password_expires_at, row_status,
-            created_at, updated_at
-        ) VALUES (
-            'D', NOW(),
-            OLD.user_id, OLD.user_role, OLD.user_password, OLD.user_name, OLD.user_email,
-            OLD.user_phone, OLD.company_name, OLD.is_email_verified, OLD.failed_login_attempts,
-            OLD.locked_until, OLD.last_login_at, OLD.password_expires_at, OLD.row_status,
-            OLD.created_at, OLD.updated_at
-        );
-        RETURN OLD;
+
+    INSERT INTO users_jn (
+        jn_operation, 
+        jn_timestamp,
+        user_id, 
+        user_role, 
+        user_password, 
+        user_name, 
+        user_email,
+        user_phone, 
+        company_name, 
+        is_email_verified, 
+        failed_login_attempts,
+        locked_until, 
+        last_login_at, 
+        password_expires_at, 
+        row_status,
+        created_at, 
+        updated_at
+    ) VALUES (
+        TG_OP, 
+        NOW(),
+        OLD.user_id, 
+        OLD.user_role, 
+        OLD.user_password, 
+        OLD.user_name, 
+        OLD.user_email,
+        OLD.user_phone, 
+        OLD.company_name, 
+        OLD.is_email_verified, 
+        OLD.failed_login_attempts,
+        OLD.locked_until, 
+        OLD.last_login_at, 
+        OLD.password_expires_at, 
+        OLD.row_status,
+        OLD.created_at, 
+        OLD.updated_at
+    );
+
+    IF      TG_OP = 'UPDATE' THEN RETURN NEW;
+    ELSIF   TG_OP = 'DELETE' THEN RETURN OLD;
     END IF;
+
     RETURN NULL;
 END;
 $$;

@@ -1,7 +1,7 @@
 CREATE TABLE product (
     product_id          UUID            PRIMARY KEY DEFAULT gen_random_uuid(),
     product_category    enum_category   NOT NULL,
-    product_name        VARCHAR(255)    NOT NULL UNIQUE,
+    product_name        VARCHAR(255)    NOT NULL,
     product_short_desc  VARCHAR(255)    NOT NULL,
     product_long_desc   TEXT            NOT NULL,
     row_status          enum_row_status NOT NULL DEFAULT 'ACTIVE',
@@ -9,6 +9,10 @@ CREATE TABLE product (
     updated_at          TIMESTAMPTZ     NULL
 );
 -- ########################################################################################
+CREATE UNIQUE INDEX uk_product_name_not_deleted 
+    ON product (LOWER(product_name)) 
+    WHERE row_status <> 'DELETED';
+
 CREATE TRIGGER trg_product_update
     BEFORE UPDATE ON product
     FOR EACH ROW
