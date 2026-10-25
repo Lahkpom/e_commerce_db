@@ -1,5 +1,5 @@
 CREATE TABLE user_login_log (
-    log_id          BIGINT          GENERATED ALWAYS AS IDENTITY PRIMARY KEY
+    log_id          BIGINT          GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id         UUID            NULL REFERENCES users(user_id) ON DELETE SET NULL,
     attempted_email VARCHAR(255)    NOT NULL,
     is_success      BOOLEAN         NOT NULL,

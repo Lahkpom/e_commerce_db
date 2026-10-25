@@ -18,6 +18,6 @@ CREATE TRIGGER trg_product_update
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 -- ########################################################################################
-COMMENT ON TABLE product IS 'Catálogo de productos del ecommerce, sin tener en cuenta las variantes que pueda tener cada producto en cuanto a categoría, color y talle';
-COMMENT ON TABLE product.product_short_desc IS 'Descripción para mostrar en el catalogo junto con otros productos';
-COMMENT ON TABLE product.product_long_desc IS 'Descripción para mostrar dentro de la información detallada de este producto en partiular';
+COMMENT ON TABLE    product IS 'Catálogo de productos del ecommerce, sin tener en cuenta las variantes que pueda tener cada producto en cuanto a categoría, color y talle';
+COMMENT ON COLUMN   product.product_short_desc IS 'Descripción para mostrar en el catalogo junto con otros productos';
+COMMENT ON COLUMN   product.product_long_desc IS 'Descripción para mostrar dentro de la información detallada de este producto en partiular';

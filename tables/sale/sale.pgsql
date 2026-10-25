@@ -13,16 +13,17 @@ CREATE TABLE sale (
     sale_subtotal       DECIMAL(10, 2)      NOT NULL CHECK (sale_subtotal > 0),
     sale_total          DECIMAL(10, 2)      NOT NULL CHECK CHECK (sale_total = ROUND((sale_subtotal * (1.00 - (sale_discounts / 100.00))) + shipping_cost, 2) AND sale_total > 0),
     sale_notes          TEXT                NOT NULL DEFAULT '',
-    sale_shipped_date   TIMESTAMP           NULL,
-    sale_status         enum_sale_status    NOT NULL DEFAULT 'pendiente',
+    sale_shipped_date   TIMESTAMPTZ         NULL,
+    sale_status         enum_sale_status    NOT NULL DEFAULT 'PENDIENTE',
     payment_method      enum_payment_method NOT NULL,
-    payment_status      enum_payment_status NOT NULL DEFAULT 'pendiente',
+    payment_status      enum_payment_status NOT NULL DEFAULT 'PENDIENTE',
     mp_payment_id       VARCHAR(100)        NULL,
     mp_preference_id    VARCHAR(100)        NULL,
-    created_at          TIMESTAMP           NOT NULL DEFAULT NOW(),
-    created_by          UUID                NULL REFERENCES users(user_id) ON DELETE SET NULL,
-    updated_at          TIMESTAMP           NULL,
-    updated_by          UUID                NULL REFERENCES users(user_id) ON DELETE SET NULL,
+    created_at          TIMESTAMPTZ         NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ         NULL
+    -- Estas columnas tenía pensado agregarlas acá y también en el resto de las tablas para que quede registro de QUIEN tocó qué pero todavía no lo hice. Estaría bien ponerlo o no sería algo necesario/importante?
+    -- created_by          UUID                NULL REFERENCES users(user_id) ON DELETE SET NULL,
+    -- updated_by          UUID                NULL REFERENCES users(user_id) ON DELETE SET NULL,
 );
 -- ########################################################################################
 CREATE INDEX idx_sale_user ON sale(user_id);
@@ -40,8 +41,8 @@ AS $$
 BEGIN
     -- Solo reducir stock cuando el pago cambia a 'approved'
     IF 
-        NEW.payment_status       = 'aprobado'
-        AND OLD.payment_status   IN ('pendiente', 'rechazado')
+        NEW.payment_status       = 'APROBADO'
+        AND OLD.payment_status   IN ('PENDIENTE', 'RECHAZADO')
     THEN
         UPDATE 
             variant pv

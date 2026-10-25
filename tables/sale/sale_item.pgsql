@@ -1,14 +1,14 @@
 CREATE TABLE sale_item (
-    sale_item_id            UUID            PRIMARY KEY DEFAULT gen_random_uuid(), -- Tendría  que ser un BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY??
+    sale_item_id            UUID            PRIMARY KEY DEFAULT gen_random_uuid(), -- Tendría  que ser un BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY?? O directamente dejar como pk compuesta a sale_id/variant_id?
     sale_id                 UUID            NOT NULL REFERENCES sale(sale_id) ON DELETE CASCADE,
-    variant_id              UUID            NOT NULL REFERENCES variant(variant_id) ON DELETE SET NULL,
+    variant_id              BIGINT          NOT NULL REFERENCES variant(variant_id) ON DELETE SET NULL,
     variant_desc            VARCHAR(255)    NOT NULL,
     product_name            VARCHAR(255)    NOT NULL,
     sale_item_sku           VARCHAR(100)    NOT NULL,
     sale_item_unit_price    DECIMAL(10, 2)  NOT NULL CHECK (sale_item_unit_price > 0),
     sale_item_quantity      INTEGER         NOT NULL CHECK (sale_item_quantity > 0),
     sale_item_subtotal      DECIMAL(10, 2)  NOT NULL CHECK (sale_item_subtotal = sale_item_unit_price * sale_item_quantity AND sale_item_subtotal > 0),
-    created_at              TIMESTAMP       NOT NULL DEFAULT NOW()
+    created_at              TIMESTAMPTZ     NOT NULL DEFAULT NOW()
 );
 -- ########################################################################################
 CREATE INDEX idx_sale_item_sale        ON sale_item(sale_id);

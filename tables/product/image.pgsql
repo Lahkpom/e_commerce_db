@@ -2,22 +2,20 @@ CREATE TABLE image (
     image_id        BIGINT          GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     variant_id      BIGINT          NOT NULL REFERENCES variant(variant_id) ON DELETE CASCADE,
     image_url       TEXT            NOT NULL,
-    display_order   INTEGER         NOT NULL CHECK (display_order >= 0) DEFAULT 0,
+    display_order   INTEGER         NOT NULL CHECK (display_order >= 0),
     is_primary      BOOLEAN         NOT NULL DEFAULT FALSE,
-    row_status      enum_row_status NOT NULL DEFAULT 'ACTIVE',
     created_at      TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ     NULL
 );
 -- ########################################################################################
 CREATE INDEX idx_image_variant ON image(variant_id);
--- Solo puede existir UNA imagen con is_primary = TRUE por cada variante entre las que estén activas/no borradas.
+--Solo puede existir UNA imagen principal (is_primary = TRUE) por cada variante
 CREATE UNIQUE INDEX uq_image_variant_primary 
     ON image (variant_id) 
-    WHERE is_primary = TRUE AND row_status <> 'DELETED';
+    WHERE is_primary = TRUE;
 -- Optimiza la lectura de la galería ordenada (portada primero, luego por orden secuencial)
 CREATE INDEX idx_image_variant_display 
-    ON image (variant_id, display_order ASC) 
-    WHERE row_status <> 'DELETED';
+    ON image (variant_id, display_order ASC);
 -- ########################################################################################
 CREATE TRIGGER trg_image_updated_at
     BEFORE UPDATE ON image
