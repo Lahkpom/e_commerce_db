@@ -1,9 +1,9 @@
 -- 1. Crear la tabla de Journal
 CREATE TABLE users_jn (
-    jn_id           BIGINT          GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    jn_operation    VARCHAR(10)     NOT NULL CHECK (jn_operation IN ('UPDATE', 'DELETE')),
-    jn_timestamp    TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
-    jn_changed_by   VARCHAR(255)    NULL, -- usuario o service que ejecutó el cambio
+    jn_id                   BIGINT          GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    jn_operation            VARCHAR(10)     NOT NULL CHECK (jn_operation IN ('UPDATE', 'DELETE')),
+    jn_timestamp            TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
+    jn_changed_by           VARCHAR(255)    NULL, -- usuario o service que ejecutó el cambio
     
     -- Snapshot del registro tal como estaba
     user_id                 UUID            NOT NULL,
@@ -30,11 +30,18 @@ CREATE OR REPLACE FUNCTION trg_fn_audit_users()
 RETURNS TRIGGER 
 SET search_path = public
 LANGUAGE plpgsql AS $$
+DECLARE
+    v_changed_by VARCHAR(255);
 BEGIN
+    v_changed_by := NULLIF(current_setting('app.current_user', true), '');
+    IF v_changed_by IS NULL THEN
+        v_changed_by := SESSION_USER;
+    END IF;
 
     INSERT INTO users_jn (
         jn_operation, 
         jn_timestamp,
+        jn_changed_by,
         user_id, 
         user_role, 
         user_password, 
@@ -53,6 +60,7 @@ BEGIN
     ) VALUES (
         TG_OP, 
         NOW(),
+        v_changed_by,
         OLD.user_id, 
         OLD.user_role, 
         OLD.user_password, 

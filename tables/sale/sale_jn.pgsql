@@ -43,8 +43,6 @@ LANGUAGE plpgsql AS $$
 DECLARE
     v_changed_by VARCHAR(255);
 BEGIN
-    -- Intenta leer si Spring Boot seteó una variable de sesión con el username/ID del operador;
-    -- si no existe, toma el usuario autenticado de PostgreSQL
     v_changed_by := NULLIF(current_setting('app.current_user', true), '');
     IF v_changed_by IS NULL THEN
         v_changed_by := SESSION_USER;
@@ -110,10 +108,8 @@ BEGIN
         OLD.updated_by
     );
 
-    IF TG_OP = 'UPDATE' THEN
-        RETURN NEW;
-    ELSIF TG_OP = 'DELETE' THEN
-        RETURN OLD;
+    IF      TG_OP = 'UPDATE' THEN RETURN NEW;
+    ELSIF   TG_OP = 'DELETE' THEN RETURN OLD;
     END IF;
 
     RETURN NULL;
