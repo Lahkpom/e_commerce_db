@@ -1,77 +1,74 @@
--- Agregar todos los campos de rowstatus, created_at y updated_at
-
 CREATE TABLE sale (
-    sale_id             UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id             UUID                NULL REFERENCES users(user_id) ON DELETE SET NULL,
-    customer_name       VARCHAR(255)        NOT NULL,
-    customer_email      VARCHAR(255)        NOT NULL,
-    customer_phone      VARCHAR(50)         NOT NULL,
-    shipping_address    TEXT                NOT NULL,
-    shipping_cost       DECIMAL(10, 2)      NOT NULL DEFAULT 0 CHECK (shipping_cost >= 0),
-    sale_quantity       INTEGER             NOT NULL CHECK (sale_quantity > 0),
-    sale_discounts      DECIMAL(5, 2)       NOT NULL DEFAULT 0 CHECK (sale_discounts >= 0 AND sale_discounts <= 100),
-    sale_subtotal       DECIMAL(10, 2)      NOT NULL CHECK (sale_subtotal > 0),
-    sale_total          DECIMAL(10, 2)      NOT NULL CHECK CHECK (sale_total = ROUND((sale_subtotal * (1.00 - (sale_discounts / 100.00))) + shipping_cost, 2) AND sale_total > 0),
-    sale_notes          TEXT                NOT NULL DEFAULT '',
-    sale_shipped_date   TIMESTAMPTZ         NULL,
-    sale_status         enum_sale_status    NOT NULL DEFAULT 'PENDIENTE',
-    payment_method      enum_payment_method NOT NULL,
-    payment_status      enum_payment_status NOT NULL DEFAULT 'PENDIENTE',
-    mp_payment_id       VARCHAR(100)        NULL,
-    mp_preference_id    VARCHAR(100)        NULL,
-    created_at          TIMESTAMPTZ         NOT NULL DEFAULT NOW(),
-    updated_at          TIMESTAMPTZ         NULL
-    -- Estas columnas tenía pensado agregarlas acá y también en el resto de las tablas para que quede registro de QUIEN tocó qué pero todavía no lo hice. Estaría bien ponerlo o no sería algo necesario/importante?
-    -- created_by          UUID                NULL REFERENCES users(user_id) ON DELETE SET NULL,
-    -- updated_by          UUID                NULL REFERENCES users(user_id) ON DELETE SET NULL,
+    sale_id                 UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id                 UUID                NULL REFERENCES users(user_id) ON DELETE SET NULL,
+    tracking_token          UUID                NOT NULL DEFAULT gen_random_uuid(),
+    
+    -- Snapshot de contacto y entrega (inmutables tras la compra)
+    customer_name           VARCHAR(255)        NOT NULL,
+    customer_email          VARCHAR(255)        NOT NULL,
+    customer_phone          VARCHAR(50)         NOT NULL,
+    customer_notes          TEXT                NULL,
+    shipping_address        TEXT                NOT NULL,
+    
+    -- Totales financieros (moneda congelada)
+    sale_quantity           INTEGER             NOT NULL CHECK (sale_quantity > 0),
+    sale_subtotal           DECIMAL(12, 2)      NOT NULL CHECK (sale_subtotal > 0),
+    sale_discount_amount    DECIMAL(12, 2)      NOT NULL DEFAULT 0.00 CHECK (sale_discount_amount >= 0),
+    shipping_cost           DECIMAL(12, 2)      NOT NULL DEFAULT 0.00 CHECK (shipping_cost >= 0),
+    sale_total              DECIMAL(12, 2)      NOT NULL CHECK (sale_total = (sale_subtotal - sale_discount_amount + shipping_cost) AND sale_total > 0),
+    
+    -- Fechas de logística
+    sale_shipped_at         TIMESTAMPTZ         NULL,
+    sale_delivered_at       TIMESTAMPTZ         NULL,
+    
+    -- Máquina de estados
+    sale_status             enum_sale_status    NOT NULL DEFAULT 'PENDIENTE',
+    payment_method          enum_payment_method NOT NULL,
+    payment_status          enum_payment_status NOT NULL DEFAULT 'PENDIENTE',
+    internal_notes          TEXT                NULL,
+    
+    -- Trazabilidad de pasarela de pago (Mercado Pago / Gateway)
+    mp_payment_id           VARCHAR(100)        NULL,
+    mp_preference_id        VARCHAR(100)        NULL,
+    mp_merchant_order_id    VARCHAR(100)        NULL,
+    
+    -- Auditoría técnica
+    created_at              TIMESTAMPTZ         NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ         NULL,
+    updated_by              UUID                NULL REFERENCES users(user_id) ON DELETE SET NULL
 );
 -- ########################################################################################
-CREATE INDEX idx_sale_user ON sale(user_id);
+CREATE INDEX idx_sale_user              ON sale(user_id);
+CREATE INDEX idx_sale_customer_email    ON sale(LOWER(customer_email));
+CREATE INDEX idx_sale_status            ON sale(sale_status);
+CREATE INDEX idx_sale_payment_status    ON sale(payment_status);
+CREATE INDEX idx_sale_created_at        ON sale(created_at DESC);
+CREATE INDEX idx_sale_mp_payment        ON sale(mp_payment_id) WHERE mp_payment_id IS NOT NULL;
+
+CREATE UNIQUE INDEX uq_sale_tracking_token ON sale(tracking_token);
 -- ########################################################################################
 CREATE TRIGGER trg_sale_update
     BEFORE UPDATE ON sale
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 -- ########################################################################################
--- Función para reducir stock
-CREATE OR REPLACE FUNCTION reduce_variant_stock()
-RETURNS TRIGGER 
-SET search_path = public
-AS $$
-BEGIN
-    -- Solo reducir stock cuando el pago cambia a 'approved'
-    IF 
-        NEW.payment_status       = 'APROBADO'
-        AND OLD.payment_status   IN ('PENDIENTE', 'RECHAZADO')
-    THEN
-        UPDATE 
-            variant pv
-        SET 
-            variant_stock = variant_stock - si.quantity
-        FROM 
-            sale_item si
-        WHERE 
-            si.sale_id          = NEW.sale_id
-            AND si.variant_id   = pv.variant_id;
-    END IF;
-
-    NEW.updated_at = NOW();
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
--- ----------------------------------------------------------------------------------------
-CREATE TRIGGER trg_reduce_variant_stock
-    AFTER UPDATE ON sale
-    FOR EACH ROW
-    EXECUTE FUNCTION reduce_variant_stock();
--- ########################################################################################
-COMMENT ON TABLE sale                       IS 'Historial de órdenes de compra';
-COMMENT ON COLUMN sale.user_id              IS 'Usuario que realizó la compra. Si no se logea queda en null y pasa a ser el customer_email el dato de ancla. En caso que un usuario logeado lo haya creado y en un futuro este se elimine, queda la columna en null, persistiendo en la tabla todos los datos customer_*';
-COMMENT ON COLUMN sale.sale_quantity        IS 'Cantidad de productos en total que posee la compra';
-COMMENT ON COLUMN sale.sale_discounts       IS 'Porcentaje de descuento aplicado, si corresponde';
-COMMENT ON COLUMN sale.sale_subtotal        IS 'Valor de la suma bruta de todos los productos que se hallan en la orden de compra';
-COMMENT ON COLUMN sale.sale_total           IS 'Valor final después de restar descuentos y sumar envíos';
-COMMENT ON COLUMN sale.sale_shipped_date    IS 'Fecha de entrega del producto';
-COMMENT ON COLUMN sale.mp_payment_id        IS 'Dato que viene de MP al realizar el pago';
-COMMENT ON COLUMN sale.mp_preference_id     IS 'Dato que viene de MP al realizar el pago';
+COMMENT ON TABLE sale                       IS 'Cabecera consolidada de órdenes de compra con snapshot financiero y logístico.';
+COMMENT ON COLUMN sale.user_id              IS 'Usuario registrado propietario de la orden. Queda en NULL si la compra fue como invitado.';
+COMMENT ON COLUMN sale.tracking_token       IS 'Token criptográfico único utilizado para el acceso público seguro (magic link) al estado del pedido sin autenticación.';
+COMMENT ON COLUMN sale.shipping_address     IS 'Dirección completa y normalizada de entrega (calle, número, piso, localidad, CP).';
+COMMENT ON COLUMN sale.customer_notes       IS 'Observaciones o aclaraciones cargadas directamente por el cliente durante el checkout.';
+COMMENT ON COLUMN sale.internal_notes       IS 'Anotaciones operativas y de seguimiento exclusivas para uso administrativo del personal de la tienda.';
+COMMENT ON COLUMN sale.sale_quantity        IS 'Cantidad total acumulada de unidades de producto que contiene la compra.';
+COMMENT ON COLUMN sale.sale_subtotal        IS 'Monto acumulado bruto en moneda local (suma de los subtotales de sale_item).';
+COMMENT ON COLUMN sale.sale_discount_amount IS 'Descuento total deducido a la compra expresado en valor monetario fijo (no en porcentaje).';
+COMMENT ON COLUMN sale.shipping_cost        IS 'Costo de envío cotizado y aplicado a la transacción.';
+COMMENT ON COLUMN sale.sale_total           IS 'Monto final a cobrar tras aplicar descuentos fijos y cargos de envío. Validado por restricción CHECK.';
+COMMENT ON COLUMN sale.sale_shipped_at      IS 'Marca de tiempo UTC en que la orden fue despachada y entregada al servicio de correo/logística.';
+COMMENT ON COLUMN sale.sale_delivered_at    IS 'Marca de tiempo UTC en que la orden fue confirmada como recibida por el cliente.';
+COMMENT ON COLUMN sale.sale_status          IS 'Estado del ciclo de vida operativo del pedido (PENDIENTE, PREPARACION, ENVIADO, ENTREGADO, CANCELADO, REEMBOLSADO).';
+COMMENT ON COLUMN sale.payment_method       IS 'Medio seleccionado por el cliente para el abono (MERCADO_PAGO, TRANSFERENCIA, EFECTIVO).';
+COMMENT ON COLUMN sale.payment_status       IS 'Estado de la liquidación del cobro (PENDIENTE, APROBADO, RECHAZADO, REEMBOLSADO).';
+COMMENT ON COLUMN sale.mp_payment_id        IS 'Identificador de la transacción de pago retornado por la API de Mercado Pago.';
+COMMENT ON COLUMN sale.mp_preference_id     IS 'Identificador del checkout preference creado para el cobro en Mercado Pago.';
+COMMENT ON COLUMN sale.mp_merchant_order_id IS 'Identificador de orden comercial retornado por las notificaciones Webhook de Mercado Pago.';
+COMMENT ON COLUMN sale.updated_by           IS 'Identificador del usuario o administrador que aplicó la última modificación manual.';

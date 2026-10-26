@@ -1,44 +1,31 @@
 CREATE TABLE sale_item (
-    sale_item_id            UUID            PRIMARY KEY DEFAULT gen_random_uuid(), -- Tendría  que ser un BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY?? O directamente dejar como pk compuesta a sale_id/variant_id?
-    sale_id                 UUID            NOT NULL REFERENCES sale(sale_id) ON DELETE CASCADE,
-    variant_id              BIGINT          NOT NULL REFERENCES variant(variant_id) ON DELETE SET NULL,
-    variant_desc            VARCHAR(255)    NOT NULL,
-    product_name            VARCHAR(255)    NOT NULL,
-    sale_item_sku           VARCHAR(100)    NOT NULL,
-    sale_item_unit_price    DECIMAL(10, 2)  NOT NULL CHECK (sale_item_unit_price > 0),
-    sale_item_quantity      INTEGER         NOT NULL CHECK (sale_item_quantity > 0),
-    sale_item_subtotal      DECIMAL(10, 2)  NOT NULL CHECK (sale_item_subtotal = sale_item_unit_price * sale_item_quantity AND sale_item_subtotal > 0),
-    created_at              TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+    sale_item_id    BIGINT              GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    sale_id         UUID                NOT NULL REFERENCES sale(sale_id) ON DELETE CASCADE,
+    variant_id      BIGINT              NULL REFERENCES variant(variant_id) ON DELETE SET NULL,
+    
+    -- Snapshot completo del producto vendido
+    product_name    VARCHAR(255)        NOT NULL,
+    product_desc    VARCHAR(255)        NOT NULL,
+    variant_desc    VARCHAR(255)        NOT NULL,
+    variant_sku     VARCHAR(100)        NOT NULL,
+    variant_size    enum_numeric_size   NOT NULL,
+    color_name      VARCHAR(100)        NOT NULL,
+    image_url       TEXT                NOT NULL,
+    
+    -- Valores económicos
+    unit_price      DECIMAL(12, 2)      NOT NULL CHECK (unit_price > 0),
+    quantity        INTEGER             NOT NULL CHECK (quantity > 0),
+    subtotal        DECIMAL(12, 2)      NOT NULL CHECK (subtotal = (unit_price * quantity) AND subtotal > 0),
+    
+    created_at      TIMESTAMPTZ         NOT NULL DEFAULT NOW()
 );
 -- ########################################################################################
 CREATE INDEX idx_sale_item_sale        ON sale_item(sale_id);
 CREATE INDEX idx_sale_item_variant     ON sale_item(variant_id);
 -- ########################################################################################
--- Función para verificar stock
-CREATE OR REPLACE FUNCTION check_variant_stock()
-RETURNS TRIGGER 
-SET search_path = public
-AS $$
-DECLARE
-    available_stock INTEGER;
-    variant_info VARCHAR;
-BEGIN
-    SELECT variant_stock, sale_item_sku INTO available_stock, variant_info
-    FROM variant
-    WHERE variant_id = NEW.variant_id;
-    
-    IF available_stock < NEW.sale_item_quantity THEN
-        RAISE EXCEPTION 'Stock insuficiente para variante %. Disponible: %, Solicitado: %', 
-            variant_info, available_stock, NEW.sale_item_quantity;
-    END IF;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
--- ----------------------------------------------------------------------------------------
-CREATE TRIGGER trg_check_variant_stock
-    BEFORE INSERT ON sale_item
-    FOR EACH ROW
-    EXECUTE FUNCTION check_variant_stock();
--- ########################################################################################
-COMMENT ON TABLE sale_item IS 'Items de cada venta (snapshot)';
+COMMENT ON TABLE sale_item                  IS 'Detalle de renglones de la compra con copia histórica inmutable del catálogo.';
+COMMENT ON COLUMN sale_item.sale_id         IS 'Referencia a la cabecera de la venta. Si la cabecera se borra, sus ítems caen en cascada.';
+COMMENT ON COLUMN sale_item.variant_id      IS 'Referencia a la variante viva del catálogo. Pasa a NULL si la variante es eliminada para preservar el renglón.';
+COMMENT ON COLUMN sale_item.unit_price      IS 'Precio unitario final de venta acordado para esta variante.';
+COMMENT ON COLUMN sale_item.quantity        IS 'Cantidad de unidades adquiridas de este ítem (mínimo 1).';
+COMMENT ON COLUMN sale_item.subtotal        IS 'Monto resultante de multiplicar unit_price por quantity. Validado por restricción CHECK.';
