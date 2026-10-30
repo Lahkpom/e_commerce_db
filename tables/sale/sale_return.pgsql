@@ -23,7 +23,7 @@ CREATE TABLE sale_return (
     
     -- Dictamen e inspección en depósito/taller
     inspection_notes            TEXT                    NULL, -- Detalle técnico tras abrir e inspeccionar las prendas
-    inspection_evidence_url     TEXT                    NULL, -- URL/Bucket con fotografías del peritaje (clave ante rechazos)
+    inspection_evidence_path    TEXT                    NULL, -- URL/Bucket con fotografías del peritaje (clave ante rechazos)
     inspected_by                UUID                    NULL REFERENCES users(user_id) ON DELETE SET NULL,
     inspected_at                TIMESTAMPTZ             NULL,
     
