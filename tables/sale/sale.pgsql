@@ -7,9 +7,9 @@ CREATE TABLE sale (
     customer_name           VARCHAR(255)        NOT NULL,
     customer_email          VARCHAR(255)        NOT NULL,
     customer_phone          VARCHAR(50)         NOT NULL,
-    customer_notes          TEXT                NULL,
     customer_tax_id_type    tax_id_type         NULL,
     customer_tax_id_number  VARCHAR(20)         NULL,
+    customer_notes          TEXT                NULL,
     shipping_address        TEXT                NOT NULL,
     
     -- Totales financieros (moneda congelada)
