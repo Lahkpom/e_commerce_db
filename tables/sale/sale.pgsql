@@ -8,6 +8,8 @@ CREATE TABLE sale (
     customer_email          VARCHAR(255)        NOT NULL,
     customer_phone          VARCHAR(50)         NOT NULL,
     customer_notes          TEXT                NULL,
+    customer_tax_id_type    tax_id_type         NULL,
+    customer_tax_id_number  VARCHAR(20)         NULL,
     shipping_address        TEXT                NOT NULL,
     
     -- Totales financieros (moneda congelada)
@@ -40,6 +42,7 @@ CREATE TABLE sale (
 -- ########################################################################################
 CREATE INDEX idx_sale_user              ON sale(user_id);
 CREATE INDEX idx_sale_customer_email    ON sale(LOWER(customer_email));
+CREATE INDEX idx_sale_customer_tax_id   ON sale (customer_tax_id_number);
 CREATE INDEX idx_sale_status            ON sale(sale_status);
 CREATE INDEX idx_sale_payment_status    ON sale(payment_status);
 CREATE INDEX idx_sale_created_at        ON sale(created_at DESC);
