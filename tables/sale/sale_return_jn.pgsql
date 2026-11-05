@@ -99,7 +99,6 @@ BEGIN
 END;
 $$;
 
-
 CREATE TRIGGER trg_sale_return_audit
     AFTER UPDATE OR DELETE ON sale_return
     FOR EACH ROW
