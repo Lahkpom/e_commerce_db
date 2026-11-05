@@ -6,6 +6,8 @@ CREATE TABLE users (
     user_email              VARCHAR(255)    NOT NULL CHECK (user_email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$'),
     user_phone              VARCHAR(50)     NULL,
     company_name            VARCHAR(255)    NULL,
+    tax_id_type             tax_id_type     NULL,
+    tax_id_number           VARCHAR(20)     NULL,
     is_email_verified       BOOLEAN         NOT NULL DEFAULT FALSE,
     failed_login_attempts   INTEGER         NOT NULL DEFAULT 0 CHECK (failed_login_attempts >= 0),
     locked_until            TIMESTAMPTZ     NULL,
@@ -20,7 +22,8 @@ CREATE UNIQUE INDEX uk_user_email_not_deleted
     ON users (LOWER(user_email)) 
     WHERE row_status <> 'DELETED';
 -- ########################################################################################
-CREATE INDEX idx_users_role_status ON users(user_role, row_status);
+CREATE INDEX idx_users_role_status  ON users(user_role, row_status);
+CREATE INDEX idx_users_tax_id       ON users (tax_id_number);
 -- ########################################################################################
 CREATE TRIGGER trg_user_update
     BEFORE UPDATE ON users
