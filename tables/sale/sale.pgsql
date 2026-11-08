@@ -27,6 +27,7 @@ CREATE TABLE sale (
     sale_status             enum_sale_status    NOT NULL DEFAULT 'PENDIENTE',
     payment_method          enum_payment_method NOT NULL,
     payment_status          enum_payment_status NOT NULL DEFAULT 'PENDIENTE',
+    fiscal_rejection        BOOLEAN             NOT NULL DEFAULT FALSE,
     internal_notes          TEXT                NULL,
     
     -- Trazabilidad de pasarela de pago (Mercado Pago / Gateway)
@@ -71,6 +72,7 @@ COMMENT ON COLUMN sale.sale_delivered_at    IS 'Marca de tiempo UTC en que la or
 COMMENT ON COLUMN sale.sale_status          IS 'Estado del ciclo de vida operativo del pedido (PENDIENTE, PREPARACION, ENVIADO, ENTREGADO, CANCELADO, REEMBOLSADO).';
 COMMENT ON COLUMN sale.payment_method       IS 'Medio seleccionado por el cliente para el abono (MERCADO_PAGO, TRANSFERENCIA, EFECTIVO).';
 COMMENT ON COLUMN sale.payment_status       IS 'Estado de la liquidación del cobro (PENDIENTE, APROBADO, RECHAZADO, REEMBOLSADO).';
+COMMENT ON COLUMN sale.fiscal_rejection     IS 'Tiene la finalidad de indicar cuando un intento de emisión de fatura fue rechazado por ARCA debido a inconsistencias en los datos..';
 COMMENT ON COLUMN sale.mp_payment_id        IS 'Identificador de la transacción de pago retornado por la API de Mercado Pago.';
 COMMENT ON COLUMN sale.mp_preference_id     IS 'Identificador del checkout preference creado para el cobro en Mercado Pago.';
 COMMENT ON COLUMN sale.mp_merchant_order_id IS 'Identificador de orden comercial retornado por las notificaciones Webhook de Mercado Pago.';

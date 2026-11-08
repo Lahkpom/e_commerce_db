@@ -1,14 +1,14 @@
 CREATE TABLE fiscal_receipt (
-    fiscal_receipt_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    sale_id UUID NOT NULL REFERENCES sale(sale_id),
-    return_id UUID REFERENCES sale_return(return_id),
-    receipt_type fiscal_receipt_type NOT NULL,
-    afip_cbte_tipo INT NOT NULL, -- 11: Factura C, 12: Nota de Débito C, 13: Nota de Crédito C
-    point_of_sale INT NOT NULL,
-    receipt_number BIGINT NOT NULL,
-    cae VARCHAR(14) NOT NULL,
-    cae_due_date DATE NOT NULL,
-    issue_date DATE NOT NULL,
+    fiscal_receipt_id   UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
+    sale_id             UUID                NOT NULL REFERENCES sale(sale_id),
+    return_id           UUID                REFERENCES sale_return(return_id),
+    receipt_type        fiscal_receipt_type NOT NULL,
+    afip_cbte_tipo      INT                 NOT NULL, -- 11: Factura C, 12: Nota de Débito C, 13: Nota de Crédito C
+    point_of_sale       INT                 NOT NULL,
+    receipt_number      BIGINT              NOT NULL,
+    cae                 VARCHAR(14)         NOT NULL,
+    cae_due_date        DATE                NOT NULL,
+    issue_date          DATE                NOT NULL,
     
     -- Snapshot del receptor al momento de la emisión
     doc_type INT NOT NULL, -- 80: CUIT, 96: DNI, 99: Sin identificar
@@ -31,7 +31,7 @@ CREATE TABLE fiscal_receipt (
 );
 
 -- Índices de búsqueda frecuente
-CREATE INDEX idx_fiscal_receipt_sale ON fiscal_receipt(sale_id);
-CREATE INDEX idx_fiscal_receipt_return ON fiscal_receipt(return_id);
-CREATE INDEX idx_fiscal_receipt_cae ON fiscal_receipt(cae);
-CREATE INDEX idx_fiscal_receipt_dates ON fiscal_receipt(issue_date);
+CREATE INDEX idx_fiscal_receipt_sale    ON fiscal_receipt(sale_id);
+CREATE INDEX idx_fiscal_receipt_return  ON fiscal_receipt(return_id);
+CREATE INDEX idx_fiscal_receipt_cae     ON fiscal_receipt(cae);
+CREATE INDEX idx_fiscal_receipt_dates   ON fiscal_receipt(issue_date);
