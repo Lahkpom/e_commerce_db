@@ -47,7 +47,8 @@ CREATE INDEX idx_sale_customer_tax_id   ON sale (customer_tax_id_number);
 CREATE INDEX idx_sale_status            ON sale(sale_status);
 CREATE INDEX idx_sale_payment_status    ON sale(payment_status);
 CREATE INDEX idx_sale_created_at        ON sale(created_at DESC);
-CREATE INDEX idx_sale_mp_payment        ON sale(mp_payment_id) WHERE mp_payment_id IS NOT NULL;
+CREATE INDEX idx_sale_mp_payment        ON sale(mp_payment_id)      WHERE mp_payment_id IS NOT NULL;
+CREATE INDEX idx_sale_fiscal_rejection  ON sale(fiscal_rejection)   WHERE fiscal_rejection = TRUE;
 
 CREATE UNIQUE INDEX uq_sale_tracking_token ON sale(tracking_token);
 -- ########################################################################################
