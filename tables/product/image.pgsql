@@ -3,7 +3,6 @@ CREATE TABLE image (
     product_id      UUID        NOT NULL REFERENCES product(product_id) ON DELETE CASCADE,
     color_id        BIGINT      NOT NULL REFERENCES color(color_id),
     image_url       TEXT        NOT NULL,
-    display_order   INTEGER     NOT NULL CHECK (display_order >= 0),
     is_primary      BOOLEAN     NOT NULL DEFAULT FALSE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NULL
@@ -11,7 +10,7 @@ CREATE TABLE image (
 -- ########################################################################################
 -- Búsqueda rápida de galería por producto y color
 CREATE INDEX idx_image_product_color 
-    ON image (product_id, color_id, display_order ASC);
+    ON image (product_id, color_id, is_primary DESC, created_at ASC);
 -- ########################################################################################
 -- Solo UNA imagen principal (is_primary = TRUE) por cada combinación Producto + Color
 CREATE UNIQUE INDEX uq_image_product_color_primary 
@@ -26,5 +25,4 @@ CREATE TRIGGER trg_image_updated_at
 COMMENT ON TABLE    image               IS 'Imágenes compartidas por todos los talles de un mismo producto y color.';
 COMMENT ON COLUMN   image.product_id    IS 'Producto al que pertenece la galería.';
 COMMENT ON COLUMN   image.color_id      IS 'Color específico del producto al que corresponden las fotografías.';
-COMMENT ON COLUMN   image.display_order IS 'Posición relativa para ordenar la galería en el front.';
 COMMENT ON COLUMN   image.is_primary    IS 'Portada principal del color en el catálogo. Máximo una por producto y color.';

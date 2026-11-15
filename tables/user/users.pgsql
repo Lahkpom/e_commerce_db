@@ -32,7 +32,7 @@ CREATE TRIGGER trg_user_update
 -- ########################################################################################
 COMMENT ON TABLE users                          IS 'Tabla principal de usuarios y credenciales administrada por Spring Boot.';
 COMMENT ON COLUMN users.user_id                 IS 'Identificador único UUID.';
-COMMENT ON COLUMN users.user_role               IS 'Rol del usuario (SUPER_ADMIN, ADMIN, WHOLESALER, CUSTOMER). Por defecto es CUSTOMER';
+COMMENT ON COLUMN users.user_role               IS 'Rol del usuario (ADMIN, OPERATOR, WHOLESALER, CUSTOMER). Por defecto es CUSTOMER';
 COMMENT ON COLUMN users.user_password           IS 'Hash criptográfico (BCrypt) generado por el backend.';
 COMMENT ON COLUMN users.user_name               IS 'Nombre completo o razón social de contacto.';
 COMMENT ON COLUMN users.user_email              IS 'Correo electrónico único validado.';
@@ -49,7 +49,7 @@ COMMENT ON COLUMN users.last_login_at           IS 'Último acceso con éxito.';
 -- ########################################################################################
 -- 1. Habilitar la extensión (en Supabase ya suele venir activa)
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
--- 2. Insertar el superadmin con su contraseña hasheada al vuelo
+-- 2. Insertar el administrador con su contraseña hasheada al vuelo
 INSERT INTO users (
     user_id,
     user_name,
@@ -64,7 +64,7 @@ INSERT INTO users (
     'NOMBRE',
     'admin@admin.com',
     crypt('MiClaveSegura123!', gen_salt('bf', 10)), -- Genera hash BCrypt estándar con costo 10
-    'SUPERADMIN',
+    'ADMIN',
     'ACTIVE',
     TRUE,
     NOW() -- Obliga al usuario a cambiar la contraseña al primer login

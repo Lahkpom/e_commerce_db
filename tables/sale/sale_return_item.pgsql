@@ -20,7 +20,6 @@ CREATE TABLE sale_return_item (
 -- Índices
 CREATE INDEX idx_sale_return_item_return    ON sale_return_item(return_id);
 CREATE INDEX idx_sale_return_item_sale_item ON sale_return_item(sale_item_id);
-CREATE INDEX idx_sale_return_item_variant   ON sale_return_item(variant_id);
 
 -- Restricción para evitar registrar dos veces el mismo renglón de compra en una misma solicitud
 CREATE UNIQUE INDEX uq_return_sale_item ON sale_return_item(return_id, sale_item_id);

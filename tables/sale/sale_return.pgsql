@@ -57,7 +57,7 @@ COMMENT ON COLUMN sale_return.return_shipping_guide     IS 'Número de tracking 
 COMMENT ON COLUMN sale_return.refund_amount             IS 'Monto monetario exacto a devolver al comprador una vez superado el peritaje.';
 COMMENT ON COLUMN sale_return.customer_notes            IS 'Manifestación del cliente describiendo el motivo o falla declarada.';
 COMMENT ON COLUMN sale_return.inspection_notes          IS 'Dictamen pericial del operador de control de calidad tras recibir y examinar la prenda.';
-COMMENT ON COLUMN sale_return.inspection_evidence_url   IS 'Enlace al repositorio de imágenes que respaldan el dictamen (fundamental en rechazos por uso).';
+COMMENT ON COLUMN sale_return.inspection_evidence_path  IS 'Enlace al repositorio de imágenes que respaldan el dictamen (fundamental en rechazos por uso).';
 COMMENT ON COLUMN sale_return.inspected_by              IS 'Identificador del operador/auditor que revisó físicamente la mercadería en taller.';
 COMMENT ON COLUMN sale_return.inspected_at              IS 'Marca temporal exacta en que se concluyó la inspección de calidad.';
 COMMENT ON COLUMN sale_return.closed_at                 IS 'Marca temporal UTC en que concluyó formalmente el expediente de devolución.';
