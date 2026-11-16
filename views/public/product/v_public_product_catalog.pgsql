@@ -51,4 +51,4 @@ GROUP BY
     p.product_short_desc;
 
 COMMENT ON VIEW v_public_product_catalog IS 
-'Catálogo público de productos activos filtrable por target_gender. Agrupa el precio mínimo, conteo de talles y colores activos, y una imagen primaria por cada color disponible.';
+'Catálogo público de productos activos con al menos una variante y un color activos, filtrable por target_gender. Agrupa el precio mínimo, conteo de talles y colores activos, y una imagen primaria por cada color disponible.';
