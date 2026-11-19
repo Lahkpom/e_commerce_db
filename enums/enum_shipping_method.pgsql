@@ -1,0 +1,6 @@
+CREATE TYPE enum_shipping_method AS ENUM (
+    'RETIRO_LLAVALLOL',
+    'ENVIO_GBA_ZONA_SUR',
+    'ENVIO_GBA_GENERAL',
+    'ENVIO_CORREO_NACIONAL'
+);
