@@ -4,13 +4,18 @@ CREATE TABLE sale (
     tracking_token          UUID                NOT NULL DEFAULT gen_random_uuid(),
     
     -- Snapshot de contacto y entrega (inmutables tras la compra)
+    -- TODO - Sería conveniente hacer subtablas para customer_data y shipping_data?
     customer_name           VARCHAR(255)        NOT NULL,
     customer_email          VARCHAR(255)        NOT NULL,
     customer_phone          VARCHAR(50)         NOT NULL,
     customer_tax_id_type    tax_id_type         NULL,
     customer_tax_id_number  VARCHAR(20)         NULL,
     customer_notes          TEXT                NULL,
-    shipping_address        TEXT                NOT NULL,
+    shipping_method         enum_shipping_method NOT NULL,
+    shipping_province       VARCHAR(100)        NULL,
+    shipping_locality       VARCHAR(150)        NULL,
+    shipping_postal_code    VARCHAR(10)         NULL,
+    shipping_address        TEXT                NULL,
     
     -- Totales financieros (moneda congelada)
     sale_quantity           INTEGER             NOT NULL CHECK (sale_quantity > 0),
@@ -60,7 +65,11 @@ CREATE TRIGGER trg_sale_update
 COMMENT ON TABLE sale                       IS 'Cabecera consolidada de órdenes de compra con snapshot financiero y logístico.';
 COMMENT ON COLUMN sale.user_id              IS 'Usuario registrado propietario de la orden. Queda en NULL si la compra fue como invitado.';
 COMMENT ON COLUMN sale.tracking_token       IS 'Token criptográfico único utilizado para el acceso público seguro (magic link) al estado del pedido sin autenticación.';
-COMMENT ON COLUMN sale.shipping_address     IS 'Dirección completa y normalizada de entrega (calle, número, piso, localidad, CP).';
+COMMENT ON COLUMN sale.shipping_method      IS 'Método de envío o retiro seleccionado para la compra.';
+COMMENT ON COLUMN sale.shipping_province    IS 'Provincia de destino del envío.';
+COMMENT ON COLUMN sale.shipping_locality    IS 'Localidad de destino del envío.';
+COMMENT ON COLUMN sale.shipping_postal_code IS 'Código postal de destino del envío.';
+COMMENT ON COLUMN sale.shipping_address     IS 'Dirección completa y normalizada de entrega (calle, número, piso, localidad, CP). NULL cuando se retira en Llavallol.';
 COMMENT ON COLUMN sale.customer_notes       IS 'Observaciones o aclaraciones cargadas directamente por el cliente durante el checkout.';
 COMMENT ON COLUMN sale.internal_notes       IS 'Anotaciones operativas y de seguimiento exclusivas para uso administrativo del personal de la tienda.';
 COMMENT ON COLUMN sale.sale_quantity        IS 'Cantidad total acumulada de unidades de producto que contiene la compra.';
