@@ -20,6 +20,7 @@ CREATE TABLE users_jn (
     locked_until            TIMESTAMPTZ     NULL,
     last_login_at           TIMESTAMPTZ     NULL,
     password_expires_at     TIMESTAMPTZ     NOT NULL,
+    must_change_password    BOOLEAN         NOT NULL,
     row_status              enum_row_status NOT NULL,
     created_at              TIMESTAMPTZ     NOT NULL,
     updated_at              TIMESTAMPTZ     NULL
@@ -57,7 +58,8 @@ BEGIN
         failed_login_attempts,
         locked_until, 
         last_login_at, 
-        password_expires_at, 
+        password_expires_at,
+        must_change_password,
         row_status,
         created_at, 
         updated_at
@@ -78,7 +80,8 @@ BEGIN
         OLD.failed_login_attempts,
         OLD.locked_until, 
         OLD.last_login_at, 
-        OLD.password_expires_at, 
+        OLD.password_expires_at,
+        OLD.must_change_password,
         OLD.row_status,
         OLD.created_at, 
         OLD.updated_at

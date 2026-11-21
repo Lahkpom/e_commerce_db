@@ -13,6 +13,7 @@ CREATE TABLE users (
     locked_until            TIMESTAMPTZ     NULL,
     last_login_at           TIMESTAMPTZ     NULL,
     password_expires_at     TIMESTAMPTZ     NOT NULL DEFAULT (NOW() + INTERVAL '180 days'),
+    must_change_password    BOOLEAN         NOT NULL DEFAULT FALSE,
     row_status              enum_row_status NOT NULL DEFAULT 'ACTIVE',
     created_at              TIMESTAMPTZ     NOT NULL DEFAULT NOW(),
     updated_at              TIMESTAMPTZ     NULL
@@ -42,6 +43,7 @@ COMMENT ON COLUMN users.is_email_verified       IS 'Indica si validó el correo.
 COMMENT ON COLUMN users.failed_login_attempts   IS 'Contador de intentos fallidos para protección de fuerza bruta.';
 COMMENT ON COLUMN users.locked_until            IS 'Bloqueo temporal por exceso de intentos fallidos.';
 COMMENT ON COLUMN users.last_login_at           IS 'Último acceso con éxito.';
+COMMENT ON COLUMN users.must_change_password    IS 'Indica si el usuario debe cambiar su contraseña antes de continuar.';
 -- ########################################################################################
 -- ########################################################################################
 -- SCRIPT PARA GENERAR USUARIOS ADMINISTRADORES
@@ -58,7 +60,7 @@ INSERT INTO users (
     user_role,
     row_status,
     is_email_verified,
-    password_expires_at
+    must_change_password
 ) VALUES (
     gen_random_uuid(),
     'NOMBRE',
