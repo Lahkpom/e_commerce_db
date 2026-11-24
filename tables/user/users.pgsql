@@ -69,5 +69,5 @@ INSERT INTO users (
     'ADMIN',
     'ACTIVE',
     TRUE,
-    NOW() -- Obliga al usuario a cambiar la contraseña al primer login
+    TRUE -- Obliga al usuario a cambiar la contraseña al primer login
 );
