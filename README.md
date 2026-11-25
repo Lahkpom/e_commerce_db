@@ -8,9 +8,9 @@ Este repositorio contiene el diseño físico modularizado en archivos `.pgsql` d
 
 | Componente | Repositorio |
 |---|---|
-| Backend Spring Boot | [e_commerce_back](https://github.com/TU_USUARIO/e_commerce_back) |
-| Frontend React + TypeScript | [e_commerce_front](https://github.com/TU_USUARIO/e_commerce_front) |
-| Base de Datos PostgreSQL (este repositorio) | [e_commerce_db](https://github.com/TU_USUARIO/e_commerce_db) |
+| Backend Spring Boot | [e_commerce_back](https://github.com/Lahkpom/e_commerce_back) |
+| Frontend React + TypeScript | [e_commerce_front](https://github.com/Lahkpom/e_commerce_front) |
+| Base de Datos PostgreSQL (este repositorio) | [e_commerce_db](https://github.com/Lahkpom/e_commerce_db) |
 
 ## 2. Diagrama entidad-relación y dominios funcionales
 
